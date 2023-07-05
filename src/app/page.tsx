@@ -1,67 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { durationString, sum } from "@/utils";
+import { useAutoRerender, useStats } from "@/utils/react";
 
 const SESSION_DURATION = 45 * 60 * 1_000; // 45-minute session duration
-
-const useStats = (id: string) => {
-  return useQuery<UserStats>({
-    queryKey: ["stats", id],
-    queryFn: async () => await (await fetch(`/api/stats/${id}`)).json(),
-  });
-};
-
-/**
- * Forces a component to re-render every `period` milliseconds.
- */
-const useAutoRerender = (period: number = 1000) => {
-  const [state, setState] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => setState((state) => state + 1), period);
-    return () => clearInterval(interval);
-  });
-};
-
-type UserStats = {
-  _id: string;
-  session_start: number;
-  intervals: {
-    status: "driver" | "navigator";
-    utterances: number[];
-    lines_written: number;
-    start: number;
-  }[];
-};
-
-function sum<T>(arr: T[], getter: (arg0: T) => number) {
-  let sum = 0;
-  for (const item of arr) {
-    sum += getter(item);
-  }
-  return sum;
-}
-
-function durationString(millis: number) {
-  let seconds = Math.floor(millis / 1000);
-  let negative = seconds < 0;
-  if (negative) {
-    seconds = -seconds;
-  }
-
-  const hh = Math.floor(seconds / 60 / 60);
-  const mm = Math.floor((seconds % 3600) / 60);
-  const ss = seconds % 60;
-
-  return (
-    (negative ? "-" : "") +
-    [hh, mm, ss]
-      .map((component) => component.toString().padStart(2, "0"))
-      .join(":")
-      .replace(/^00:/, "")
-  ); // remove "00:" at the beginning if a duration has 0 hours
-}
 
 export default function Home() {
   const { data, isLoading } = useStats("test_user_0001");
@@ -140,9 +82,9 @@ export default function Home() {
               last switch
             </span>
           </div>
-          <button className="rounded-md bg-blue-500 px-3 py-2 text-white">
+          {/* <button className="rounded-md bg-blue-500 px-3 py-2 text-white">
             Switch to {isDriver ? "Navigator" : "Driver"} &rarr;
-          </button>
+          </button> */}
         </div>
         <p>
           {isDriver ? (
@@ -181,20 +123,27 @@ export default function Home() {
               <h3>{lines}</h3>
               <p>Lines of code written</p>
             </div>
-
             <div>
               <h3>{Math.round(driverMinutes)}</h3>
               <p>Minutes spent as driver</p>
             </div>
-
             <div>
               <h3>{utterances}</h3>
               <p>Utterances</p>
             </div>
-
             <div>
               <h3>{Math.round(navigatorMinutes)}</h3>
               <p>Minutes spent as navigator</p>
+            </div>
+            {/* TODO */}
+            <div>
+              <h3>--%</h3>
+              <p>Total code contribution</p>
+            </div>
+            {/* TODO */}
+            <div>
+              <h3>--</h3>
+              <p>Interruptions</p>
             </div>
           </div>
         </div>

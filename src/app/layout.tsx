@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import "./globals.css";
-import { Inter } from "next/font/google";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Outfit } from "next/font/google";
+import { useState } from "react";
+import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const customFont = Outfit({ subsets: ["latin"] });
 
 export default function RootLayout({
   children,
@@ -17,7 +17,7 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={customFont.className}>
         <QueryClientProvider client={queryClient}>
           {children}
           <ReactQueryDevtools />
