@@ -1,4 +1,5 @@
 export function sum<T>(arr: T[], getter: (arg0: T) => number) {
+  if (!Array.isArray(arr)) return 0;
   let sum = 0;
   for (const item of arr) {
     sum += getter(item);

@@ -1,4 +1,5 @@
 import { UserStats } from "@/types/UserStats";
+import { createId } from "@paralleldrive/cuid2";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -14,9 +15,33 @@ export const useAutoRerender = (period: number = 1000) => {
   });
 };
 
-export const useStats = (id: string) => {
+export const useStats = (id: string | null) => {
+  if (id === null) {
+    return { data: null, isLoading: true };
+  }
   return useQuery<UserStats>({
     queryKey: ["stats", id],
     queryFn: async () => await (await fetch(`/api/stats/${id}`)).json(),
   });
+};
+
+export const getUID = () => {
+  let uid = localStorage.getItem("UID");
+  if (!uid) {
+    uid = createId();
+    localStorage.setItem("UID", uid);
+  }
+  return uid;
+};
+
+export const getPartnerUID = () => {
+  return localStorage.getItem("Partner_UID");
+};
+
+export const setPartnerUID = (uid: string | null) => {
+  if (uid === null) {
+    localStorage.removeItem("Partner_UID");
+    return;
+  }
+  localStorage.setItem("Partner_UID", uid);
 };
