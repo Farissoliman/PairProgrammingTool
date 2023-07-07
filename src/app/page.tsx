@@ -23,11 +23,11 @@ function Home() {
     );
   }
 
+  router.push("/pair");
+
   if (!data) {
     return <p>No data yet</p>;
   }
-
-  router.push("/pair");
 
   return <>Working...</>;
 }

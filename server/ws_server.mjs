@@ -8,11 +8,24 @@ const wss = new WebSocketServer({
   host: "0.0.0.0",
 });
 
-// A map from a user's UID to their current active WebSocket
+// A map from a user's UID to a list of their current active WebSocket connections
 let connections = {};
 
 // A list of UIDs that the WS server is expecting data from.
 let waitingOn = [];
+
+/**
+ * @param {string | string[]} uids
+ * @param {any} message
+ */
+function send(uids, message) {
+  const arr = Array.isArray(uids) ? uids : [uids];
+  arr.forEach((uid) => {
+    connections[uid]?.forEach((ws) => {
+      ws.send(JSON.stringify(message));
+    });
+  });
+}
 
 wss.on("connection", (ws, request) => {
   console.log(
@@ -32,32 +45,29 @@ wss.on("connection", (ws, request) => {
       if (message.action) {
         if (message.action === "hello") {
           uid = message.uid;
-          connections[uid] = ws;
+          if (connections[uid] === undefined) {
+            connections[uid] = [ws];
+          } else {
+            connections[uid].push(ws);
+          }
           if (message.partnerUid) {
             partnerUid = message.partnerUid;
           }
         } else if (message.action === "update_partner") {
           partnerUid = message.partnerUid;
           // Send both sides an `id` message, telling them to allow the user to start the session.
-          ws.send(
-            JSON.stringify({
-              action: "id",
-              uid,
-              partnerUid,
-            })
-          );
-          connections[partnerUid]?.send(
-            JSON.stringify({
-              action: "id",
-              uid: partnerUid,
-              partnerUid: uid,
-            })
-          );
+          send(uid, {
+            action: "id",
+            uid,
+            partnerUid,
+          });
+          send(partnerUid, {
+            action: "id",
+            uid: partnerUid,
+            partnerUid: uid,
+          });
         } else if (message.action === "start") {
           console.log("Starting session for ", uid, " and ", partnerUid);
-          // Start the session for both partners
-          const payload = JSON.stringify({ action: "start" });
-
           // Insert a base "template" document for each user
           const db = await getDatabase();
           const coll = db.collection("stats");
@@ -88,15 +98,13 @@ wss.on("connection", (ws, request) => {
             { upsert: true }
           );
 
-          ws.send(payload);
-          connections[partnerUid].send(payload);
+          // Start the session for both partners
+          send([uid, partnerUid], { action: "start" });
         } else if (message.action === "switch") {
           // Request data from both sides
           if (partnerUid && connections[partnerUid]) {
-            const payload = JSON.stringify({ action: "request_data" });
             waitingOn.push(uid, partnerUid);
-            ws.send(payload);
-            connections[partnerUid].send(payload);
+            send([uid, partnerUid], { action: "request_data" });
           } else {
             ws.send(
               JSON.stringify({
@@ -122,12 +130,10 @@ wss.on("connection", (ws, request) => {
           if (!waitingOn.includes(partnerUid)) {
             // If we're not waiting on the other partner to supply data...
             // Finalize the switch by notifying both partners
-            const payload = JSON.stringify({
+            send([uid, partnerUid], {
               action: "switch",
               start: Date.now(),
             });
-            ws.send(payload);
-            connections[partnerUid].send(payload);
           }
         }
       } else {
