@@ -27,20 +27,86 @@ function send(uids, message) {
   });
 }
 
+let partnerCache = new Map();
+
+/**
+ * @param {string} uid
+ */
+async function getPartner(uid) {
+  if (partnerCache.has(uid)) return partnerCache.get(uid);
+  const coll = await getCollection();
+  const doc = await coll.findOne({
+    // @ts-ignore
+    _id: uid,
+  });
+  console.log("Getting partner for ", uid, " - Document:", doc);
+  if (doc?.partnerUid) {
+    partnerCache.set(uid, doc?.partnerUid);
+    partnerCache.set(doc?.partnerUid, uid);
+  }
+  return doc?.partnerUid;
+}
+
+async function setPartner(uid, partnerUid) {
+  if (!uid || !partnerUid) {
+    throw new Error("Unexpected input: " + uid + ", " + partnerUid);
+  }
+  const coll = await getCollection();
+  await Promise.all([
+    coll.updateOne(
+      {
+        _id: uid,
+      },
+      {
+        $set: {
+          partnerUid: partnerUid,
+        },
+      },
+      { upsert: true }
+    ),
+    coll.updateOne(
+      {
+        _id: partnerUid,
+      },
+      {
+        $set: {
+          partnerUid: uid,
+        },
+      },
+      { upsert: true }
+    ),
+  ]);
+}
+
+async function getCollection() {
+  const db = await getDatabase();
+  return db.collection("stats");
+}
+
 wss.on("connection", (ws, request) => {
   console.log(
     `Accepting WebSocket connection from ${request.socket.remoteAddress}`
   );
 
   let uid = undefined;
-  let partnerUid = undefined;
 
   ws.send(JSON.stringify({ action: "hello" }));
 
   ws.on("message", async (data) => {
+    let partnerUid = uid ? await getPartner(uid) : undefined;
+
     try {
       const message = JSON.parse(data.toString("utf-8"));
       console.log("Received", message);
+
+      if (!uid && !message.uid) {
+        ws.send(
+          JSON.stringify({
+            error: "No UID specified or found from a previous interaction",
+          })
+        );
+        return;
+      }
 
       if (message.action) {
         if (message.action === "hello") {
@@ -50,27 +116,12 @@ wss.on("connection", (ws, request) => {
           } else {
             connections[uid].push(ws);
           }
-          if (message.partnerUid) {
-            partnerUid = message.partnerUid;
-          }
         } else if (message.action === "update_partner") {
-          partnerUid = message.partnerUid;
-          // Send both sides an `id` message, telling them to allow the user to start the session.
-          send(uid, {
-            action: "id",
-            uid,
-            partnerUid,
-          });
-          send(partnerUid, {
-            action: "id",
-            uid: partnerUid,
-            partnerUid: uid,
-          });
+          // Handled below
         } else if (message.action === "start") {
           console.log("Starting session for ", uid, " and ", partnerUid);
           // Insert a base "template" document for each user
-          const db = await getDatabase();
-          const coll = db.collection("stats");
+          const coll = await getCollection();
           coll.updateOne(
             {
               _id: uid,
@@ -115,8 +166,7 @@ wss.on("connection", (ws, request) => {
         } else if (message.action === "provide_data") {
           // Commit the data to the database
           waitingOn = waitingOn.filter((it) => it !== uid);
-          const db = await getDatabase();
-          const coll = db.collection("stats");
+          const coll = await getCollection();
           await coll.updateOne(
             {
               _id: uid,
@@ -138,6 +188,29 @@ wss.on("connection", (ws, request) => {
         }
       } else {
         console.warn(`No action in WS message: ${message}`);
+      }
+
+      if (message.action === "hello" || message.action === "update_partner") {
+        const partner = await getPartner(message.uid);
+        partnerUid = partner;
+        if (message.partnerUid) {
+          await setPartner(uid, message.partnerUid);
+          partnerUid = message.partnerUid;
+        }
+        if (partner || message.partnerUid) {
+          console.log("Partners", uid, "and", partnerUid, "found.");
+          // Send both sides an `id` message, telling them to allow the user to start the session.
+          send(uid, {
+            action: "id",
+            uid,
+            partnerUid,
+          });
+          send(message.partnerUid, {
+            action: "id",
+            uid: partnerUid,
+            partnerUid: uid,
+          });
+        }
       }
     } catch (e) {
       console.log(e);

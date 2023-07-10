@@ -1,13 +1,19 @@
 "use client";
 
-import { getPartnerUID, getUID, setPartnerUID } from "@/utils/react";
+import {
+  AutoRouting,
+  getPartnerUID,
+  getUID,
+  resetUID,
+  setPartnerUID,
+} from "@/utils/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Outfit } from "next/font/google";
 import Link from "next/link";
 import { createContext, useEffect, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
-import { WebSocketHook } from "react-use-websocket/dist/lib/types";
+import { JsonValue, WebSocketHook } from "react-use-websocket/dist/lib/types";
 import "./globals.css";
 
 const customFont = Outfit({ subsets: ["latin"] });
@@ -28,6 +34,7 @@ export default function RootLayout({
   });
 
   useEffect(() => {
+    console.log("Received: ", webSocketHook.lastJsonMessage);
     if (
       webSocketHook.lastJsonMessage &&
       "action" in webSocketHook.lastJsonMessage &&
@@ -56,18 +63,28 @@ export default function RootLayout({
           </>
         ) : (
           <QueryClientProvider client={queryClient}>
-            <WebSocketContext.Provider value={webSocketHook}>
+            <WebSocketContext.Provider
+              value={{
+                ...webSocketHook,
+                sendJsonMessage: (msg: JsonValue, keep?: boolean) => {
+                  console.log("Sending: ", msg);
+                  webSocketHook.sendJsonMessage(msg, keep);
+                },
+              }}
+            >
+              <AutoRouting />
               {children}
             </WebSocketContext.Provider>
             <ReactQueryDevtools />
           </QueryClientProvider>
         )}
         <Link
-          href="#"
+          href="/"
           onClick={(e) => {
             e.preventDefault();
+            resetUID();
             setPartnerUID(null);
-            window.location.reload();
+            window.location.href = "/";
           }}
           className="absolute right-2 top-1 font-medium text-gray-500 underline"
         >

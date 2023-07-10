@@ -1,28 +1,21 @@
 "use client";
 
-import { getPartnerUID, getUID, setPartnerUID } from "@/utils/react";
-import { useRouter } from "next/navigation";
+import { getUID, setPartnerUID } from "@/utils/react";
 import { useContext, useEffect, useRef } from "react";
 import { WebSocketContext } from "../layout";
 
 export default function Page() {
+  const id = getUID();
   const { sendJsonMessage, lastJsonMessage } = useContext(WebSocketContext)!;
 
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const router = useRouter();
-
-  const id = getUID();
-
-  if (getPartnerUID() !== null) {
-    router.push("/start");
-  }
 
   useEffect(() => {
     if (lastJsonMessage && "action" in lastJsonMessage) {
-      if (lastJsonMessage.action === "id") {
+      if (lastJsonMessage.action === "id" && lastJsonMessage.partnerUid) {
         // Partner IDs have been synced
         setPartnerUID(lastJsonMessage.partnerUid);
-        router.push("/start");
+        console.log("Partner UIDs have been synced");
       }
     }
   }, [lastJsonMessage]);

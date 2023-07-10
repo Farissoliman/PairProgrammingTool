@@ -1,27 +1,11 @@
 "use client";
 
-import { getPartnerUID } from "@/utils/react";
-import { useRouter } from "next/navigation";
-import { useContext, useEffect } from "react";
+import { useContext } from "react";
 import { Button } from "../components/Button";
 import { WebSocketContext } from "../layout";
 
 export default function Page() {
-  const router = useRouter();
-  const { sendJsonMessage, lastJsonMessage } = useContext(WebSocketContext)!;
-
-  if (getPartnerUID() === null) {
-    router.push("/pair");
-  }
-
-  useEffect(() => {
-    if (lastJsonMessage && "action" in lastJsonMessage) {
-      if (lastJsonMessage.action === "start") {
-        // Partner IDs have been synced
-        router.push("/stats");
-      }
-    }
-  }, [lastJsonMessage]);
+  const { sendJsonMessage } = useContext(WebSocketContext)!;
 
   return (
     <main className="flex h-screen flex-col items-center justify-center">

@@ -24,6 +24,7 @@ def collect() -> dict[LiteralString, any]:
 
 
 def subscribe(collect: Callable[[], dict[LiteralString, any]]):
+    global interval_start
     """Connects to the WebSocket server and listens for a request for data."""
     with connect("ws://127.0.0.1:3030") as websocket:
         while True:

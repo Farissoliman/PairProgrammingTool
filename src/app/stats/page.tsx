@@ -1,13 +1,7 @@
 "use client";
 
 import { durationString, sum } from "@/utils";
-import {
-  getPartnerUID,
-  getUID,
-  useAutoRerender,
-  useStats,
-} from "@/utils/react";
-import { useRouter } from "next/navigation";
+import { getUID, useAutoRerender, useStats } from "@/utils/react";
 import { useContext } from "react";
 import { WebSocketContext } from "../layout";
 
@@ -16,7 +10,6 @@ const SESSION_DURATION = 45 * 60 * 1_000; // 45-minute session duration
 export default function Page() {
   const id = getUID();
   const { data, isLoading } = useStats(id);
-  const router = useRouter();
 
   const { sendJsonMessage } = useContext(WebSocketContext)!;
 
@@ -24,13 +17,8 @@ export default function Page() {
 
   if (isLoading) {
     return <p>Loading...</p>;
-  } else if (!data) {
-    router.push("/start");
+  } else if (!data || !data.session_start) {
     return <p>No data yet!</p>;
-  }
-
-  if (getPartnerUID() === null) {
-    router.push("/pair");
   }
 
   const lines = sum(data.intervals, (interval) => interval.lines_written);
