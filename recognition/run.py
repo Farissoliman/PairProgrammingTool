@@ -13,7 +13,7 @@ uid = input("UID: ")
 
 
 def collect():
-    data = {"start": interval_start}
+    data = {"action": "provide_data", "start": interval_start}
     for name in collectors:
         data[name] = collectors[name].collect()
 
