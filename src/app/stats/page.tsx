@@ -87,15 +87,15 @@ export default function Page() {
         <p>
           {isDriver ? (
             <>
-              As the driver, you're in charge of code editing. Delegate research
-              and higher-level strategy to your navigator, or switch places and
-              allow your partner to take over.
+              As the driver, you&apos;re in charge of code editing. Delegate
+              research and higher-level strategy to your navigator, or switch
+              places and allow your partner to take over.
             </>
           ) : (
             <>
-              As the navigator, you're in charge of research and higher-level
-              strategy and problem-solving. Let your driver write code while you
-              keep track of the big picture.
+              As the navigator, you&apos;re in charge of research and
+              higher-level strategy and problem-solving. Let your driver write
+              code while you keep track of the big picture.
             </>
           )}
         </p>
@@ -152,13 +152,14 @@ export default function Page() {
             <div>
               <p>
                 ⏲️ <strong>Tip</strong>: You have written the majority of your
-                team's project so far. Consider switching to navigator soon.
+                team&apos;s project so far. Consider switching to navigator
+                soon.
               </p>
             </div>
 
             <div>
               <p>
-                🗣️ <strong>Tip</strong>: You haven't been speaking much
+                🗣️ <strong>Tip</strong>: You haven&apos;t been speaking much
                 recently. Make sure you communicate your ideas to your partner!
               </p>
             </div>
@@ -166,8 +167,8 @@ export default function Page() {
             <div>
               <p>
                 😕 <strong>Tip</strong>: Your partner seems confused. Make sure
-                you're clearly explaining your ideas to keep everyone on the
-                same page.
+                you&apos;re clearly explaining your ideas to keep everyone on
+                the same page.
               </p>
             </div>
           </div>

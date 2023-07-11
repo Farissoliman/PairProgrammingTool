@@ -12,6 +12,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Outfit } from "next/font/google";
 import Link from "next/link";
 import { createContext, useEffect, useState } from "react";
+import { Toaster, toast } from "react-hot-toast";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { JsonValue, WebSocketHook } from "react-use-websocket/dist/lib/types";
 import "./globals.css";
@@ -46,7 +47,14 @@ export default function RootLayout({
         partnerUid: getPartnerUID(),
       });
     }
-  }, [webSocketHook.lastJsonMessage]);
+
+    if (
+      webSocketHook.lastJsonMessage &&
+      "error" in webSocketHook.lastJsonMessage
+    ) {
+      toast.error(`Error: ${webSocketHook.lastJsonMessage.error}`);
+    }
+  }, [id, webSocketHook, webSocketHook.lastJsonMessage]);
 
   return (
     <html lang="en">
@@ -74,6 +82,7 @@ export default function RootLayout({
             >
               <AutoRouting />
               {children}
+              <Toaster position="bottom-center" />
             </WebSocketContext.Provider>
             <ReactQueryDevtools />
           </QueryClientProvider>

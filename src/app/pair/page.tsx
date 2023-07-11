@@ -29,7 +29,7 @@ export default function Page() {
           submit the form.
         </p>
         <div>
-          <b>Enter your partner's ID</b>
+          <b>Enter your partner&apos;s ID</b>
           <form
             onSubmit={(e) => {
               e.preventDefault();

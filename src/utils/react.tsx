@@ -3,7 +3,7 @@ import { UserStats } from "@/types/UserStats";
 import { createId } from "@paralleldrive/cuid2";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 
 /**
  * Forces a component to re-render every `period` milliseconds.
@@ -18,16 +18,17 @@ export const useAutoRerender = (period: number = 1000) => {
 };
 
 export const useStats = (id: string | null) => {
-  if (id === null) {
-    return { data: null, isLoading: true };
-  }
   return useQuery<UserStats>({
+    enabled: typeof window !== "undefined",
     queryKey: ["stats", id],
     queryFn: async () => await (await fetch(`/api/stats/${id}`)).json(),
   });
 };
 
 export const getUID = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
   let uid = localStorage.getItem("UID");
   if (!uid) {
     uid = createId();
@@ -73,12 +74,15 @@ export const useRouting = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const goto = (path: string) => {
-    if (pathname !== path) {
-      console.log("Redirecting to ", path);
-      router.push(path);
-    }
-  };
+  const goto = useCallback(
+    (path: string) => {
+      if (pathname !== path) {
+        console.log("Redirecting to ", path);
+        router.push(path);
+      }
+    },
+    [pathname]
+  );
 
   useEffect(() => {
     if (lastJsonMessage?.action === "id") {
@@ -103,7 +107,7 @@ export const useRouting = () => {
     } else {
       goto("/pair");
     }
-  }, [data, isLoading, uid, getPartnerUID, lastJsonMessage, state]);
+  }, [data, isLoading, uid, lastJsonMessage, state, goto, queryClient]);
 };
 
 export const AutoRouting = () => {
