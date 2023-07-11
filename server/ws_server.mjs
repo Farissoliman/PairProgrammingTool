@@ -116,6 +116,11 @@ wss.on("connection", (ws, request) => {
           } else {
             connections[uid].push(ws);
           }
+          // Make sure the client is in the correct state
+          const document = await (await getCollection()).findOne({ _id: uid });
+          if (document?.session_start) {
+            send(uid, { action: "start" });
+          }
         } else if (message.action === "update_partner") {
           // Handled below
         } else if (message.action === "start") {
