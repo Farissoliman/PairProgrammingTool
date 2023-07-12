@@ -42,7 +42,6 @@ def reset_state():
 
 
 async def collect():
-    global emotions
     return emotions
 
 

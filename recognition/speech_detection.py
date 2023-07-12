@@ -1,13 +1,6 @@
-"""Speech detection module. This module is responsible for detecting speech 
-and sending the data to the server using a websocket."""
-from datetime import datetime
 import asyncio
-import json
+import time
 import speech_recognition as sr
-import websockets
-
-websockets.connect('ws://127.0.0.1:3030')
-print("Connected to WebSocket")
 
 # Create a recognizer object
 speech_recognizer = sr.Recognizer()
@@ -15,44 +8,20 @@ speech_recognizer = sr.Recognizer()
 # Create a microphone object
 microphone = sr.Microphone()
 
+utterances = []
+
+# Define a function to get the current time
 def get_current_time():
-    """Gets the current universal time
-
-    Returns:
-        _type_: string - the current universal time in the format HH:MM:SS
-    """
-    return datetime.now().strftime("%H:%M:%S")
-
-async def send_data():
-
-    # Start the microphone listening
-    stop_listening = speech_recognizer.listen_in_background(
-        microphone,
-        callback=callback,
-        phrase_time_limit=5)
-    
-    print("Listening...")
-    # Keep the program running
-    while True:
-        try:
-            pass
-        except websockets.exceptions.ConnectionClosed:
-            stop_listening(wait_for_stop=False)
+    return time.time()
 
 # Define the callback function to handle speech recognition results
 def callback(recognizer, audio):
-    """Callback function to get and handle speech recognition results
-
-    Args:
-        recognizer (Recognizer): Recognizer object from speech recognition class
-                                 for recognizing speech
-        audio (Microphone): microphone object from speech recognition class 
-                            for getting audio inputs
-    """
+    
     try:
         start_time = get_current_time()
+        
         # Convert audio to text
-        text = recognizer.recognize_vosk(audio)
+        text = recognizer.recognize_google(audio)
 
         # Update the most recent utterance
         most_recent_utterance = text
@@ -60,17 +29,14 @@ def callback(recognizer, audio):
         if most_recent_utterance == "the" or most_recent_utterance == "":
             return
 
-        # Prepare the data to send over the WebSocket
         data = {
             "start_time": start_time,
             "utterance": most_recent_utterance,
             "end_time": get_current_time()
         }
-        json_data = json.dumps(data)
-
-        print("Data is sending...")
-        # Send the data over the WebSocket
-        asyncio.get_event_loop().run_until_complete(websockets.send(json_data))
+        
+        utterances.append(data)
+        print(utterances)
 
     except sr.UnknownValueError:
         # Speech is not recognized
@@ -79,11 +45,32 @@ def callback(recognizer, audio):
         # Error occurred during speech recognition
         print("Error: {}".format(error))
 
-# Adjust the recognizer sensitivity to ambient noise and record audio from the microphone
-with microphone as source:
-    speech_recognizer.adjust_for_ambient_noise(source)
+# Define the main function to connect to the WebSocket server and run the program
+async def main():
+    uri = "ws://127.0.0.1:3030"  # Replace with the WebSocket server address
 
-def start():
-    asyncio.get_event_loop().run_until_complete(send_data())
+    # Adjust the recognizer sensitivity to ambient noise and record audio from the microphone
+    with microphone as source:
+        speech_recognizer.adjust_for_ambient_noise(source)
 
-start()
+    # Start the microphone listening
+    stop_listening = speech_recognizer.listen_in_background(microphone, callback=callback, phrase_time_limit=5)
+
+    print("Listening...")
+    try:
+        while True:
+            pass
+    except KeyboardInterrupt:
+        stop_listening(wait_for_stop=False)
+        
+def reset_state():
+    global utterances
+    utterances = []
+
+
+async def collect():
+    return utterances
+
+
+async def start():
+    asyncio.get_event_loop().run_until_complete(main())

@@ -4,10 +4,12 @@ import time
 
 import websockets
 import face_detection
+import speech_detection
 
 interval_start = time.time()
 
-collectors = {"emotions": face_detection}
+collectors = {"emotions": face_detection,
+              "utterances" : speech_detection}
 
 uid = input("UID: ")
 
