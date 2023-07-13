@@ -16,7 +16,6 @@ def get_current_time():
 
 # Define the callback function to handle speech recognition results
 def callback(recognizer, audio):
-    
     try:
         start_time = get_current_time()
         
@@ -47,8 +46,6 @@ def callback(recognizer, audio):
 
 # Define the main function to connect to the WebSocket server and run the program
 async def main():
-    uri = "ws://127.0.0.1:3030"  # Replace with the WebSocket server address
-
     # Adjust the recognizer sensitivity to ambient noise and record audio from the microphone
     with microphone as source:
         speech_recognizer.adjust_for_ambient_noise(source)
@@ -72,5 +69,7 @@ async def collect():
     return utterances
 
 
-async def start():
+def start():
     asyncio.get_event_loop().run_until_complete(main())
+
+start()
