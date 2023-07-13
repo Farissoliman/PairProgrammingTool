@@ -1,7 +1,6 @@
 import asyncio
 import json
 import time
-import multiprocessing
 import threading
 import traceback
 import sys
@@ -10,7 +9,7 @@ import websockets
 import face_detection
 import speech_detection
 
-interval_start = time.time()
+interval_start = time.time() * 1000
 
 collectors = {
     "emotions": face_detection.FaceDetection(),

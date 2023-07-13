@@ -2,8 +2,8 @@ import asyncio
 import time
 import speech_recognition as sr
 
-class SpeechDetection:
 
+class SpeechDetection:
     # Create a recognizer object
     speech_recognizer = sr.Recognizer()
 
@@ -14,13 +14,13 @@ class SpeechDetection:
 
     # Define a function to get the current time
     def get_current_time(self):
-        return time.time()
+        return time.time() * 1000
 
     # Define the callback function to handle speech recognition results
     def callback(self, recognizer, audio):
         try:
             start_time = self.get_current_time()
-            
+
             # Convert audio to text
             text = recognizer.recognize_google(audio)
 
@@ -33,9 +33,9 @@ class SpeechDetection:
             data = {
                 "start_time": start_time,
                 "utterance": most_recent_utterance,
-                "end_time": self.get_current_time()
+                "end_time": self.get_current_time(),
             }
-            
+
             self.utterances.append(data)
             print(self.utterances)
 
@@ -53,7 +53,9 @@ class SpeechDetection:
             self.speech_recognizer.adjust_for_ambient_noise(source)
 
         # Start the microphone listening
-        stop_listening = self.speech_recognizer.listen_in_background(self.microphone, callback=self.callback, phrase_time_limit=5)
+        stop_listening = self.speech_recognizer.listen_in_background(
+            self.microphone, callback=self.callback, phrase_time_limit=5
+        )
 
         print("Listening...")
         try:
@@ -61,14 +63,12 @@ class SpeechDetection:
                 pass
         except KeyboardInterrupt:
             stop_listening(wait_for_stop=False)
-            
+
     def reset_state(self):
         self.utterances = []
 
-
     def collect(self):
         return self.utterances
-
 
     def start(self):
         asyncio.new_event_loop().run_until_complete(self.main())
