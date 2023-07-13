@@ -12,18 +12,20 @@ import speech_detection
 
 interval_start = time.time()
 
-collectors = {"emotions": face_detection.FaceDetection(),
-              "utterances" : speech_detection.SpeechDetection()}
+collectors = {
+    "emotions": face_detection.FaceDetection(),
+    "utterances": speech_detection.SpeechDetection(),
+}
 
 uid = input("UID: ")
 
 
 def collect():
-    data = {"action": "provide_data", "start": interval_start}
+    data = {"start": interval_start}
     for name in collectors:
         data[name] = collectors[name].collect()
 
-    return data
+    return {"action": "provide_data", "data": data}
 
 
 def reset_state():
@@ -60,12 +62,12 @@ async def connect():
                     reset_state()
                 elif message["action"] == "start":
                     # The session has started; start collecting data
-                    
+
                     # asyncio.create_task(collectors["utterances"].start())
                     # asyncio.create_task(collectors["emotions"].start())
-                    
+
                     # await asyncio.gather(collectors["emotions"].start(), collectors["utterances"].start())
-                    
+
                     # Create a process for each collector and start them
                     # processes = []
                     # for collector_name in collectors:
@@ -76,14 +78,17 @@ async def connect():
                     # Wait for all processes to finish
                     # for process in processes:
                     #     process.join()
-                    
+
                     for collector_name in collectors:
-                        tasks = threading.Thread(target=collectors[collector_name].start)
+                        tasks = threading.Thread(
+                            target=collectors[collector_name].start
+                        )
                         tasks.start()
-                    
+
             except Exception as ex:
                 traceback.print_exc(file=sys.stdout)
                 print(f"Error parsing incoming WebSocket message {message}: {ex}")
+
 
 try:
     asyncio.get_event_loop().run_until_complete(connect())

@@ -172,16 +172,22 @@ wss.on("connection", (ws, request) => {
           // Commit the data to the database
           waitingOn = waitingOn.filter((it) => it !== uid);
           const coll = await getCollection();
-          await coll.updateOne(
+          const result = await coll.updateOne(
             {
               _id: uid,
             },
             {
-              intervals: {
-                $push: message.data,
+              $push: {
+                intervals: message.data,
               },
             }
           );
+          if (result.modifiedCount === 0 && result.upsertedCount === 0) {
+            console.warn(
+              "User document wasn't updated! MongoDB returned result: " +
+                JSON.stringify(result)
+            );
+          }
           if (!waitingOn.includes(partnerUid)) {
             // If we're not waiting on the other partner to supply data...
             // Finalize the switch by notifying both partners

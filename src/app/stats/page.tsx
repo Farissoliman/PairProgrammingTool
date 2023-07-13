@@ -148,7 +148,8 @@ export default function Page() {
 
         <div>
           <h2>Collaboration Tips</h2>
-          <div>
+          {/* TODO: Write some collaboration tips and statistical conditions for each one */}
+          <div className="opacity-25">
             <div>
               <p>
                 ⏲️ <strong>Tip</strong>: You have written the majority of your
