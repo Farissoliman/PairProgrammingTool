@@ -1,6 +1,10 @@
 import asyncio
 import json
 import time
+import multiprocessing
+import threading
+import traceback
+import sys
 
 import websockets
 import face_detection
@@ -8,8 +12,8 @@ import speech_detection
 
 interval_start = time.time()
 
-collectors = {"emotions": face_detection,
-              "utterances" : speech_detection}
+collectors = {"emotions": face_detection.FaceDetection(),
+              "utterances" : speech_detection.SpeechDetection()}
 
 uid = input("UID: ")
 
@@ -56,12 +60,30 @@ async def connect():
                     reset_state()
                 elif message["action"] == "start":
                     # The session has started; start collecting data
-                    for name in collectors:
-                        print(f"Starting {name} collector")
-                        collectors[name].start()
-            except Exception as ex:
-                print(f"Error parsing incoming WebSocket message {message}: {ex}")
+                    
+                    # asyncio.create_task(collectors["utterances"].start())
+                    # asyncio.create_task(collectors["emotions"].start())
+                    
+                    # await asyncio.gather(collectors["emotions"].start(), collectors["utterances"].start())
+                    
+                    # Create a process for each collector and start them
+                    # processes = []
+                    # for collector_name in collectors:
+                    #     process = multiprocessing.Process(target=collectors[collector_name].)
+                    #     processes.append(process)
+                    #     process.start()
 
+                    # Wait for all processes to finish
+                    # for process in processes:
+                    #     process.join()
+                    
+                    for collector_name in collectors:
+                        tasks = threading.Thread(target=collectors[collector_name].start)
+                        tasks.start()
+                    
+            except Exception as ex:
+                traceback.print_exc(file=sys.stdout)
+                print(f"Error parsing incoming WebSocket message {message}: {ex}")
 
 try:
     asyncio.get_event_loop().run_until_complete(connect())
