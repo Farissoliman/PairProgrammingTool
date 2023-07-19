@@ -8,6 +8,7 @@ import sys
 import websockets
 import face_detection
 import speech_detection
+import sys
 
 interval_start = time.time() * 1000
 
@@ -16,7 +17,7 @@ collectors = {
     "utterances": speech_detection.SpeechDetection(),
 }
 
-uid = input("UID: ")
+uid = sys.argv[1]
 
 def collect():
     """Data collection for the current interval.
@@ -85,6 +86,7 @@ async def connect():
                     # end functions and close websocket
                     for collector_name in collectors:
                         collectors[collector_name].stop()
+                        
                     ws.close()
                         
             except Exception as ex:

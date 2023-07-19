@@ -2,6 +2,7 @@
 
 import { WebSocketServer } from "ws";
 import { getDatabase } from "../src/utils/mongo.mjs";
+import { exec } from "child_process";
 
 const wss = new WebSocketServer({
   port: 3030,
@@ -125,6 +126,19 @@ wss.on("connection", (ws, request) => {
           // Handled below
         } else if (message.action === "start") {
           console.log("Starting session for ", uid, " and ", partnerUid);
+
+          const argument = uid
+          // Start the Python script
+          exec('python ./recognition/run.py ' +  argument, (error, stdout) => {
+              if (error) {
+                console.error(`Error executing Python script: ${error}`);
+                return;
+              }
+              console.log("Python script started");
+              console.log(`Python script output: ${stdout}`);
+          });
+
+
           // Insert a base "template" document for each user
           const coll = await getCollection();
           coll.updateOne(
