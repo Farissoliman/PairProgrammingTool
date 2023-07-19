@@ -43,7 +43,7 @@ export default function Page() {
             <input
               ref={inputRef}
               type="text"
-              className="rounded-lg border border-gray-500 px-2"
+              className="w-full rounded-lg border border-gray-500 px-2 text-black"
             />
             <button className="absolute inset-y-0 right-0 rounded-r-lg border border-gray-500 bg-blue-500 px-3 text-white">
               <svg

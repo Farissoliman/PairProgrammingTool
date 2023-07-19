@@ -19,13 +19,16 @@ collectors = {
 
 uid = sys.argv[1]
 
+current_position = None
+
+
 def collect():
     """Data collection for the current interval.
 
     Returns:
         dict: The collected data for the current interval.
     """
-    data = {"start": interval_start}
+    data = {"start": interval_start, "status": current_position}
     for name in collectors:
         data[name] = collectors[name].collect()
 
@@ -33,23 +36,20 @@ def collect():
 
 
 def reset_state():
-    """Reset the state of all collectors to prepare for a new interval.
-    """
+    """Reset the state of all collectors to prepare for a new interval."""
     for name in collectors:
         collectors[name].reset_state()
-        
+
+
 def start_functions():
     for collector_name in collectors:
-        tasks = threading.Thread(
-            target=collectors[collector_name].start
-        )
+        tasks = threading.Thread(target=collectors[collector_name].start)
         tasks.start()
 
 
 async def connect():
-    """Connect to the WebSocket server and await commands.
-    """
-    global interval_start, uid
+    """Connect to the WebSocket server and await commands."""
+    global interval_start, uid, current_position
     async with websockets.connect("ws://127.0.0.1:3030") as ws:
         print("Connected to WebSocket and awaiting commands.")
         while not ws.closed:
@@ -72,9 +72,11 @@ async def connect():
                     # Partners switched between driver & navigator
                     print("Switching positions")
                     interval_start = message.start
+                    current_position = message.status
                     reset_state()
-                    
+
                 elif message["action"] == "start":
+                    current_position = message.status
                     start_functions()
 
                 if message["action"] == "end":
@@ -82,17 +84,16 @@ async def connect():
                     print("Providing interval data")
                     response = collect()
                     await ws.send(json.dumps(response))
-                    
+
                     # end functions and close websocket
                     for collector_name in collectors:
                         collectors[collector_name].stop()
                         
                     ws.close()
-                        
+
             except Exception as ex:
                 traceback.print_exc(file=sys.stdout)
                 print(f"Error parsing incoming WebSocket message {message}: {ex}")
-                
 
 
 try:

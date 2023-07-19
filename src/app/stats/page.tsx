@@ -68,7 +68,7 @@ export default function Page() {
 
   return (
     <>
-      <main className="prose relative mx-auto flex max-w-lg flex-col gap-4 p-4 prose-headings:my-2">
+      <main className="prose relative mx-auto flex max-w-lg flex-col gap-4 p-4 dark:prose-invert prose-headings:my-2">
         <div className="flex items-center justify-between">
           <div>
             <h1>{isDriver ? "Driver" : "Navigator"}</h1>
@@ -77,12 +77,6 @@ export default function Page() {
               last switch
             </span>
           </div>
-          <button
-            className="rounded-md bg-blue-500 px-3 py-2 text-white"
-            onClick={() => sendJsonMessage({ action: "switch" })}
-          >
-            Switch to {isDriver ? "Navigator" : "Driver"} &rarr;
-          </button>
         </div>
         <p>
           {isDriver ? (
@@ -182,12 +176,19 @@ export default function Page() {
           {JSON.stringify(data, null, 4)}
         </pre>
 
+        <button
+          className="rounded-md bg-blue-500 px-3 py-2 text-white"
+          onClick={() => sendJsonMessage({ action: "switch" })}
+        >
+          Switch to {isDriver ? "Navigator" : "Driver"} &rarr;
+        </button>
+
         {/* Extra space so that the user can see the content at the bottom,
        which would otherwise be covered by the fixed timer element */}
         <div className="h-32"></div>
 
         <div className="fixed inset-x-0 bottom-0 z-10">
-          <div className="mx-auto flex h-20 w-[32rem] items-center justify-between p-4 backdrop-blur-lg">
+          <div className="mx-auto flex h-20 items-center justify-between p-4 backdrop-blur-lg">
             <div>
               <span className="font-medium">
                 Remaining time
@@ -196,15 +197,17 @@ export default function Page() {
               <span className="text-2xl">{timeLeft}</span>
               <span>/{timeTotal}</span>
             </div>
-            <button 
-            className="flex h-10 items-center justify-center rounded-md bg-red-700 px-3 py-2 text-white"
-            onClick={() => {
-                {/* disconnect websocket, Render the final end stats page, and turn off speech and facial recognition */}
+            <button
+              className="flex h-10 items-center justify-center rounded-md bg-red-700 px-3 py-2 text-white"
+              onClick={() => {
+                {
+                  /* disconnect websocket, Render the final end stats page, and turn off speech and facial recognition */
+                }
 
                 sendJsonMessage({ action: "end" });
-            }}>
-                End Session
-
+              }}
+            >
+              End Session
             </button>
           </div>
         </div>

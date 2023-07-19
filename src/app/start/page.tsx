@@ -10,7 +10,9 @@ export default function Page() {
   return (
     <main className="flex h-screen flex-col items-center justify-center">
       <h1 className="text-3xl font-bold">Start</h1>
-      <p>Do not start the session until instructed to do so.</p>
+      <p className="mb-8">
+        Do not start the session until instructed to do so.
+      </p>
       <Button
         onClick={() => {
           sendJsonMessage({

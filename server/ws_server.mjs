@@ -26,6 +26,7 @@ function send(uids, message) {
       ws.send(JSON.stringify(message));
     });
   });
+  console.log("Sent", message, "to", uids);
 }
 
 let partnerCache = new Map();
@@ -120,7 +121,13 @@ wss.on("connection", (ws, request) => {
           // Make sure the client is in the correct state
           const document = await (await getCollection()).findOne({ _id: uid });
           if (document?.session_start) {
-            send(uid, { action: "start" });
+            send(uid, {
+              action: "start",
+              status:
+                document.intervals && document.intervals.length > 0
+                  ? document.intervals[document.intervals.length - 1].status
+                  : document.starting_status,
+            });
           }
         } else if (message.action === "update_partner") {
           // Handled below
@@ -169,7 +176,8 @@ wss.on("connection", (ws, request) => {
           );
 
           // Start the session for both partners
-          send([uid, partnerUid], { action: "start" });
+          send(uid, { action: "start", status: "driver" });
+          send(partnerUid, { action: "start", status: "navigator" });
         } else if (message.action === "switch") {
           // Request data from both sides
           if (partnerUid && connections[partnerUid]) {
@@ -205,16 +213,29 @@ wss.on("connection", (ws, request) => {
           if (!waitingOn.includes(partnerUid)) {
             // If we're not waiting on the other partner to supply data...
             // Finalize the switch by notifying both partners
-            send([uid, partnerUid], {
+
+            const newDriver =
+              message.data.status === "driver" ? partnerUid : uid;
+            const newNavigator =
+              message.data.status === "navigator" ? partnerUid : uid;
+            const start = Date.now();
+
+            send(newDriver, {
               action: "switch",
-              start: Date.now(),
+              start,
+              status: "driver",
+            });
+            send(newNavigator, {
+              action: "switch",
+              start,
+              status: "navigator",
             });
           }
         } else if (message.action === "end") {
-            // disconnect webserver and send disconnect message
-            send([uid, partnerUid], { action: "end" });
+          // disconnect webserver and send disconnect message
+          send([uid, partnerUid], { action: "end" });
         } else {
-            console.warn(`No action in WS message: ${message}`);
+          console.warn(`No action in WS message: ${message}`);
         }
       }
 
