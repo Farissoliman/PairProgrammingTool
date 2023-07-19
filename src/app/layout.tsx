@@ -57,8 +57,10 @@ export default function RootLayout({
   }, [id, webSocketHook, webSocketHook.lastJsonMessage]);
 
   return (
-    <html lang="en">
-      <body className={customFont.className}>
+    <html lang="en" className="dark">
+      <body
+        className={`${customFont.className} dark:bg-[#181818] dark:text-white`}
+      >
         {webSocketHook.readyState !== ReadyState.OPEN ? (
           <>
             <main className="flex h-screen flex-col items-center justify-center">
@@ -84,7 +86,10 @@ export default function RootLayout({
               {children}
               <Toaster position="bottom-center" />
             </WebSocketContext.Provider>
-            <ReactQueryDevtools />
+            {window === window.parent && (
+              // Disable react query devtools when loaded inside an iframe
+              <ReactQueryDevtools />
+            )}
           </QueryClientProvider>
         )}
         <Link
@@ -95,7 +100,7 @@ export default function RootLayout({
             setPartnerUID(null);
             window.location.href = "/";
           }}
-          className="absolute right-2 top-1 font-medium text-gray-500 underline"
+          className="absolute right-2 top-1 font-medium text-gray-500 underline dark:text-gray-300"
         >
           Reset
         </Link>

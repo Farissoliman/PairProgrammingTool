@@ -41,16 +41,25 @@ export const resetUID = () => {
   localStorage.removeItem("UID");
 };
 
+let partnerUid: string | null = null;
+
 export const getPartnerUID = () => {
-  return localStorage.getItem("Partner_UID");
+  return partnerUid;
 };
 
 export const setPartnerUID = (uid: string | null) => {
-  if (uid === null) {
-    localStorage.removeItem("Partner_UID");
-    return;
-  }
-  localStorage.setItem("Partner_UID", uid);
+  partnerUid = uid;
+
+  // If this page is in an iframe,
+  // give the parent (VSCode extension) both IDs
+  window.parent?.postMessage(
+    {
+      message: "id",
+      uid: getUID(),
+      partnerUid: uid,
+    },
+    "*"
+  );
 };
 
 export const useRouting = () => {
@@ -92,7 +101,9 @@ export const useRouting = () => {
     } else if (lastJsonMessage?.action === "start") {
       queryClient.invalidateQueries(["stats", uid]);
     }
+  }, [lastJsonMessage, queryClient]);
 
+  useEffect(() => {
     const partnerUid = getPartnerUID();
 
     if (isLoading) {
@@ -107,7 +118,7 @@ export const useRouting = () => {
     } else {
       goto("/pair");
     }
-  }, [data, isLoading, uid, lastJsonMessage, state, goto, queryClient]);
+  }, [data, isLoading, uid, state, goto]);
 };
 
 export const AutoRouting = () => {
