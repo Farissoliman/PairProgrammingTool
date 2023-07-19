@@ -3,7 +3,11 @@ import time
 import speech_recognition as sr
 
 
+
 class SpeechDetection:
+    
+    running = True
+    
     # Create a recognizer object
     speech_recognizer = sr.Recognizer()
 
@@ -53,16 +57,17 @@ class SpeechDetection:
             self.speech_recognizer.adjust_for_ambient_noise(source)
 
         # Start the microphone listening
-        stop_listening = self.speech_recognizer.listen_in_background(
+        listener = self.speech_recognizer.listen_in_background(
             self.microphone, callback=self.callback, phrase_time_limit=5
         )
 
         print("Listening...")
         try:
-            while True:
+            while self.running:
                 pass
+            listener(wait_for_stop=False)
         except KeyboardInterrupt:
-            stop_listening(wait_for_stop=False)
+            return
 
     def reset_state(self):
         self.utterances = []
@@ -71,4 +76,9 @@ class SpeechDetection:
         return self.utterances
 
     def start(self):
+        self.running = True
         asyncio.new_event_loop().run_until_complete(self.main())
+    
+    def stop(self):
+        self.running = False
+        asyncio.get_event_loop().stop()

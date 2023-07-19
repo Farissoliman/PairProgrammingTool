@@ -196,8 +196,15 @@ export default function Page() {
               <span className="text-2xl">{timeLeft}</span>
               <span>/{timeTotal}</span>
             </div>
-            <button className="flex h-10 items-center justify-center rounded-md bg-red-700 px-3 py-2 text-white">
-              End Session
+            <button 
+            className="flex h-10 items-center justify-center rounded-md bg-red-700 px-3 py-2 text-white"
+            onClick={() => {
+                {/* disconnect websocket, Render the final end stats page, and turn off speech and facial recognition */}
+
+                sendJsonMessage({ action: "end" });
+            }}>
+                End Session
+
             </button>
           </div>
         </div>

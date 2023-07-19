@@ -7,6 +7,7 @@ from deepface import DeepFace
 
 class FaceDetection:
     emotions = []
+    running = False
 
     async def gather_emotion(self):
         # Open the video stream once connected
@@ -14,7 +15,7 @@ class FaceDetection:
 
         previous_emotion = None
         try:
-            while True:
+            while self.running:
                 # Read each frame from the video stream
                 _, frame = cap.read()
 
@@ -35,6 +36,8 @@ class FaceDetection:
 
                 previous_emotion = emotion
                 time.sleep(0.5)
+            cap.release()
+            cv2.destroyAllWindows()
         except KeyboardInterrupt:
             cap.release()
             cv2.destroyAllWindows()
@@ -46,4 +49,9 @@ class FaceDetection:
         return self.emotions
 
     def start(self):
+        self.running = True
         asyncio.new_event_loop().run_until_complete(self.gather_emotion())
+    
+    def stop(self):
+        self.running = False
+        asyncio.get_event_loop().stop()

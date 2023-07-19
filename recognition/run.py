@@ -18,8 +18,12 @@ collectors = {
 
 uid = input("UID: ")
 
-
 def collect():
+    """Data collection for the current interval.
+
+    Returns:
+        dict: The collected data for the current interval.
+    """
     data = {"start": interval_start}
     for name in collectors:
         data[name] = collectors[name].collect()
@@ -28,17 +32,26 @@ def collect():
 
 
 def reset_state():
+    """Reset the state of all collectors to prepare for a new interval.
+    """
     for name in collectors:
         collectors[name].reset_state()
+        
+def start_functions():
+    for collector_name in collectors:
+        tasks = threading.Thread(
+            target=collectors[collector_name].start
+        )
+        tasks.start()
 
 
 async def connect():
+    """Connect to the WebSocket server and await commands.
+    """
     global interval_start, uid
     async with websockets.connect("ws://127.0.0.1:3030") as ws:
         print("Connected to WebSocket and awaiting commands.")
-        while True:
-            if ws.closed:
-                break
+        while not ws.closed:
             message_str = await ws.recv()
             try:
                 message = json.loads(message_str)
@@ -59,34 +72,25 @@ async def connect():
                     print("Switching positions")
                     interval_start = message.start
                     reset_state()
+                    
                 elif message["action"] == "start":
-                    # The session has started; start collecting data
+                    start_functions()
 
-                    # asyncio.create_task(collectors["utterances"].start())
-                    # asyncio.create_task(collectors["emotions"].start())
-
-                    # await asyncio.gather(collectors["emotions"].start(), collectors["utterances"].start())
-
-                    # Create a process for each collector and start them
-                    # processes = []
-                    # for collector_name in collectors:
-                    #     process = multiprocessing.Process(target=collectors[collector_name].)
-                    #     processes.append(process)
-                    #     process.start()
-
-                    # Wait for all processes to finish
-                    # for process in processes:
-                    #     process.join()
-
+                if message["action"] == "end":
+                    # send appropriate data
+                    print("Providing interval data")
+                    response = collect()
+                    await ws.send(json.dumps(response))
+                    
+                    # end functions and close websocket
                     for collector_name in collectors:
-                        tasks = threading.Thread(
-                            target=collectors[collector_name].start
-                        )
-                        tasks.start()
-
+                        collectors[collector_name].stop()
+                    ws.close()
+                        
             except Exception as ex:
                 traceback.print_exc(file=sys.stdout)
                 print(f"Error parsing incoming WebSocket message {message}: {ex}")
+                
 
 
 try:

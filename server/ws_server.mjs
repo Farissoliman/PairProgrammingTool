@@ -196,9 +196,12 @@ wss.on("connection", (ws, request) => {
               start: Date.now(),
             });
           }
+        } else if (message.action === "end") {
+            // disconnect webserver and send disconnect message
+            send([uid, partnerUid], { action: "end" });
+        } else {
+            console.warn(`No action in WS message: ${message}`);
         }
-      } else {
-        console.warn(`No action in WS message: ${message}`);
       }
 
       if (message.action === "hello" || message.action === "update_partner") {
