@@ -4,7 +4,6 @@ import asyncio
 import cv2
 from deepface import DeepFace
 
-
 class FaceDetection:
     emotions = []
     running = False

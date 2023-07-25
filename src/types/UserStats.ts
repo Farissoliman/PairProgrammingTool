@@ -7,7 +7,7 @@ export type UserStats = {
   intervals: {
     status: Status;
     utterances: number[];
-    lines_written: number;
+    keystrokes: number;
     start: number;
   }[];
 };

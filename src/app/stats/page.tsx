@@ -21,7 +21,7 @@ export default function Page() {
     return <p>No data yet!</p>;
   }
 
-  const lines = sum(data.intervals, (interval) => interval.lines_written);
+  const lines = sum(data.intervals, (interval) => interval.keystrokes);
   const utterances = sum(
     data.intervals,
     (interval) => interval.utterances.length
@@ -113,7 +113,7 @@ export default function Page() {
           <div className="grid grid-cols-2">
             <div>
               <h3>{lines}</h3>
-              <p>Lines of code written</p>
+              <p>Total Keystrokes</p>
             </div>
             <div>
               <h3>{Math.round(driverMinutes)}</h3>

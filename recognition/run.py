@@ -8,7 +8,7 @@ import sys
 import websockets
 import face_detection
 import speech_detection
-import sys
+import keystroke_counter
 
 interval_start = time.time() * 1000
 
@@ -17,10 +17,10 @@ collectors = {
     "utterances": speech_detection.SpeechDetection(),
 }
 
-uid = sys.argv[1]
+# uid = sys.argv[1]
+uid = input("Enter your unique ID: ")
 
 current_position = None
-
 
 def collect():
     """Data collection for the current interval.
@@ -72,11 +72,12 @@ async def connect():
                     # Partners switched between driver & navigator
                     print("Switching positions")
                     interval_start = message.start
-                    current_position = message.status
+                    current_position = message["status"]
                     reset_state()
 
                 elif message["action"] == "start":
-                    current_position = message.status
+                    current_position = message["status"]
+                    collectors["keystrokes"] = keystroke_counter.KeyStrokeCounter(current_position)
                     start_functions()
 
                 if message["action"] == "end":
