@@ -9,6 +9,9 @@ class KeyStrokeCounter():
     def __init__(self, current_position):
         self.current_position = current_position
     
+    def set_current_position(self, current_position):
+        setattr(self, "current_position", current_position)
+        
     def on_press(self, key):
         if self.current_position == "driver":
             self.keystroke_counter += 1

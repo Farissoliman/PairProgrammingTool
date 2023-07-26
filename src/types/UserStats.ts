@@ -6,7 +6,11 @@ export type UserStats = {
   starting_status: Status;
   intervals: {
     status: Status;
-    utterances: number[];
+    utterances: {
+        start_time: number;
+        utterance: string;
+        end_time: number;
+    }[];
     keystrokes: number;
     start: number;
   }[];

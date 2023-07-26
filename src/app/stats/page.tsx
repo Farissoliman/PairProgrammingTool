@@ -1,7 +1,7 @@
 "use client";
 
 import { durationString, sum } from "@/utils";
-import { getUID, useAutoRerender, useStats } from "@/utils/react";
+import { getUID, getPartnerUID, useAutoRerender, useStats } from "@/utils/react";
 import { useContext } from "react";
 import { WebSocketContext } from "../layout";
 
@@ -9,7 +9,9 @@ const SESSION_DURATION = 45 * 60 * 1_000; // 45-minute session duration
 
 export default function Page() {
   const id = getUID();
+  const partnerId = getPartnerUID();
   const { data, isLoading } = useStats(id);
+  const { data: partnerData } = useStats(partnerId);
 
   const { sendJsonMessage } = useContext(WebSocketContext)!;
 
@@ -21,7 +23,6 @@ export default function Page() {
     return <p>No data yet!</p>;
   }
 
-  const lines = sum(data.intervals, (interval) => interval.keystrokes);
   const utterances = sum(
     data.intervals,
     (interval) => interval.utterances.length
@@ -55,7 +56,7 @@ export default function Page() {
     }
   }
 
-  const lastInterval = data.intervals[data.intervals.length - 1];
+  const lastInterval = data.intervals[data.intervals.length - 1];  
   const isDriver = lastInterval
     ? lastInterval.status === "navigator"
     : data.starting_status === "driver";
@@ -65,6 +66,26 @@ export default function Page() {
   const timeSpent = Date.now() - data.session_start;
   const timeLeft = durationString(SESSION_DURATION - timeSpent);
   const timeTotal = durationString(SESSION_DURATION);
+
+  // Get keystrokes and keystroke contribution between partners
+  const keystrokes = data.intervals.length > 0 ? lastInterval.keystrokes : 0;
+  const partnerLastInterval = partnerData?.intervals[partnerData.intervals.length - 1];
+  const partnerKeyStrokes = partnerLastInterval ? partnerLastInterval.keystrokes : 0;
+  const keystrokeContribution = (keystrokes + partnerKeyStrokes) == 0 ? "--%" : keystrokes / (keystrokes + partnerKeyStrokes) * 100 + "%";
+
+  // Count interruptions between partner data and user data
+  let interruptions = 0;
+  if (lastInterval && partnerLastInterval) {
+    for (const element of lastInterval.utterances) {
+        const utterance = element;
+        for (const element of partnerLastInterval.utterances) {
+            const partnerUtterance = element;
+            if (utterance.start_time > partnerUtterance.start_time && utterance.start_time < partnerUtterance.end_time) {
+                interruptions++;
+            }
+        }
+    }
+  }
 
   return (
     <>
@@ -112,7 +133,7 @@ export default function Page() {
           <h2>Statistics</h2>
           <div className="grid grid-cols-2">
             <div>
-              <h3>{lines}</h3>
+              <h3>{keystrokes}</h3>
               <p>Total Keystrokes</p>
             </div>
             <div>
@@ -127,14 +148,13 @@ export default function Page() {
               <h3>{Math.round(navigatorMinutes)}</h3>
               <p>Minutes spent as navigator</p>
             </div>
-            {/* TODO */}
             <div>
-              <h3>--%</h3>
-              <p>Total code contribution</p>
+              <h3>{keystrokeContribution}</h3>
+              <p>Total keystroke contribution</p>
             </div>
             {/* TODO */}
             <div>
-              <h3>--</h3>
+              <h3>{interruptions}</h3>
               <p>Interruptions</p>
             </div>
           </div>
