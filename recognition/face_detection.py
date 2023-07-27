@@ -49,8 +49,7 @@ class FaceDetection:
 
     def start(self):
         self.running = True
-        asyncio.new_event_loop().run_until_complete(self.gather_emotion())
+        asyncio.run(self.gather_emotion())
     
     def stop(self):
         self.running = False
-        asyncio.get_event_loop().stop()

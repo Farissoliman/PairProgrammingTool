@@ -77,8 +77,7 @@ class SpeechDetection:
 
     def start(self):
         self.running = True
-        asyncio.new_event_loop().run_until_complete(self.main())
+        asyncio.run(self.main())
     
     def stop(self):
         self.running = False
-        asyncio.get_event_loop().stop()

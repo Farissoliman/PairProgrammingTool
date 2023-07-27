@@ -89,15 +89,15 @@ async def connect():
                     # end functions and close websocket
                     for collector_name in collectors:
                         collectors[collector_name].stop()
-                        
+
                     ws.close()
+                    print("Websocket closed")
 
             except Exception as ex:
                 traceback.print_exc(file=sys.stdout)
                 print(f"Error parsing incoming WebSocket message {message}: {ex}")
 
-
 try:
-    asyncio.get_event_loop().run_until_complete(connect())
+    asyncio.run(connect())
 except KeyboardInterrupt:
     pass

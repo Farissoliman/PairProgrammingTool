@@ -15,6 +15,8 @@ let connections = {};
 // A list of UIDs that the WS server is expecting data from.
 let waitingOn = [];
 
+let isEnded = false;
+
 /**
  * @param {string | string[]} uids
  * @param {any} message
@@ -137,16 +139,16 @@ wss.on("connection", (ws, request) => {
           const argument = uid
 
           // Start python script
-          const child = spawn('python', ['./recognition/run.py', argument]);
-          child.stdout.on('data', function (data) {
-            console.log('stdout: ' + data);
-          });
-          child.stderr.on('data', function (data) {
-            console.log('stderr: ' + data);
-          });
-          child.on('close', function (code) {
-            console.log('child process exited with code ' + code);
-          });
+        //   const child = spawn('python', ['./recognition/run.py', argument]);
+        //   child.stdout.on('data', function (data) {
+        //     console.log('stdout: ' + data);
+        //   });
+        //   child.stderr.on('data', function (data) {
+        //     console.log('stderr: ' + data);
+        //   });
+        //   child.on('close', function (code) {
+        //     console.log('child process exited with code ' + code);
+        //   });
 
           // Insert a base "template" document for each user
           const coll = await getCollection();
@@ -212,7 +214,7 @@ wss.on("connection", (ws, request) => {
                 JSON.stringify(result)
             );
           }
-          if (!waitingOn.includes(partnerUid)) {
+          if (!waitingOn.includes(partnerUid) && !isEnded) {
             // If we're not waiting on the other partner to supply data...
             // Finalize the switch by notifying both partners
 
@@ -234,6 +236,7 @@ wss.on("connection", (ws, request) => {
             });
           }
         } else if (message.action === "end") {
+            isEnded = true;
           // disconnect webserver and send disconnect message
           send([uid, partnerUid], { action: "end" });
         } else {

@@ -87,6 +87,11 @@ export default function Page() {
     }
   }
 
+  // End session when time is up
+  if (timeLeft === "00:00") {
+    sendJsonMessage({ action: "end" });
+  }
+
   return (
     <>
       <main className="prose relative mx-auto flex max-w-lg flex-col gap-4 p-4 dark:prose-invert prose-headings:my-2">
@@ -152,7 +157,6 @@ export default function Page() {
               <h3>{keystrokeContribution}</h3>
               <p>Total keystroke contribution</p>
             </div>
-            {/* TODO */}
             <div>
               <h3>{interruptions}</h3>
               <p>Interruptions</p>
