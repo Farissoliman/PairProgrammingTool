@@ -227,7 +227,7 @@ export default function Page() {
                 {
                   /* disconnect websocket, Render the final end stats page, and turn off speech and facial recognition */
                 }
-
+                data.session_end = Date.now();
                 sendJsonMessage({ action: "end" });
               }}
             >

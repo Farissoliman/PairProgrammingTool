@@ -236,7 +236,29 @@ wss.on("connection", (ws, request) => {
             });
           }
         } else if (message.action === "end") {
-            isEnded = true;
+          isEnded = true;
+          const coll = await getCollection();
+          const finished = Date.now();
+            await coll.updateOne(
+                {
+                    _id: uid,
+                },
+                {
+                    $set: {
+                        session_end: finished,
+                    },
+                }
+            );
+            await coll.updateOne(
+                {
+                    _id: partnerUid,
+                },
+                {
+                    $set: {
+                        session_end: finished,
+                    },
+                }
+            );
           // disconnect webserver and send disconnect message
           send([uid, partnerUid], { action: "end" });
         } else {

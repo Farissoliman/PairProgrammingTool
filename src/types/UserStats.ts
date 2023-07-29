@@ -14,4 +14,5 @@ export type UserStats = {
     keystrokes: number;
     start: number;
   }[];
+  session_end: number;
 };

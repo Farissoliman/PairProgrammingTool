@@ -111,12 +111,14 @@ export const useRouting = () => {
       return;
     }
 
-    if (data?.session_start) {
+    if (data?.session_end) {
+      goto("/end");
+    } else if (data?.session_start) {
       goto("/stats");
     } else if (uid && partnerUid) {
-      goto("/start");
+        goto("/start");
     } else {
-      goto("/pair");
+        goto("/pair");
     }
   }, [data, isLoading, uid, state, goto]);
 };
