@@ -17,8 +17,8 @@ collectors = {
     "utterances": speech_detection.SpeechDetection(),
 }
 
-# uid = sys.argv[1]
-uid = input("Enter your unique ID: ")
+uid = sys.argv[1]
+# uid = input("Enter your unique ID: ")
 
 current_position = None
 

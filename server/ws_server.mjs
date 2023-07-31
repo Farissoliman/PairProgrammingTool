@@ -139,16 +139,16 @@ wss.on("connection", (ws, request) => {
           const argument = uid
 
           // Start python script
-        //   const child = spawn('python', ['./recognition/run.py', argument]);
-        //   child.stdout.on('data', function (data) {
-        //     console.log('stdout: ' + data);
-        //   });
-        //   child.stderr.on('data', function (data) {
-        //     console.log('stderr: ' + data);
-        //   });
-        //   child.on('close', function (code) {
-        //     console.log('child process exited with code ' + code);
-        //   });
+          const child = spawn('python', ['./recognition/run.py', argument]);
+          child.stdout.on('data', function (data) {
+            console.log('stdout: ' + data);
+          });
+          child.stderr.on('data', function (data) {
+            console.log('stderr: ' + data);
+          });
+          child.on('close', function (code) {
+            console.log('child process exited with code ' + code);
+          });
 
           // Insert a base "template" document for each user
           const coll = await getCollection();

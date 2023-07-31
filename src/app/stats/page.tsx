@@ -70,8 +70,8 @@ export default function Page() {
   // Get keystrokes and keystroke contribution between partners
   const keystrokes = data.intervals.length > 0 ? lastInterval.keystrokes : 0;
   const partnerLastInterval = partnerData?.intervals[partnerData.intervals.length - 1];
-  const partnerKeyStrokes = partnerLastInterval ? partnerLastInterval.keystrokes : 0;
-  const keystrokeContribution = (keystrokes + partnerKeyStrokes) == 0 ? "--%" : keystrokes / (keystrokes + partnerKeyStrokes) * 100 + "%";
+  const partnerKeystrokes = partnerLastInterval ? partnerLastInterval.keystrokes : 0;
+  const keystrokeContribution = (keystrokes + partnerKeystrokes) == 0 ? "--%" : keystrokes / (keystrokes + partnerKeystrokes) * 100 + "%";
 
   // Count interruptions between partner data and user data
   let interruptions = 0;
@@ -80,7 +80,7 @@ export default function Page() {
         const utterance = element;
         for (const element of partnerLastInterval.utterances) {
             const partnerUtterance = element;
-            if (utterance.start_time > partnerUtterance.start_time && utterance.start_time < partnerUtterance.end_time) {
+            if (utterance.start_time >= partnerUtterance.start_time && utterance.start_time <= partnerUtterance.end_time) {
                 interruptions++;
             }
         }
