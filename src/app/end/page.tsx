@@ -2,7 +2,7 @@
 
 import { sum } from "@/utils";
 import { getUID, getPartnerUID, useAutoRerender, useStats } from "@/utils/react";
-import { PieChart } from "@/components/pieChart";
+import { PieChart } from "@/app/components/pieChart";
 
 import driverMinutes from "../stats/page";
 import navigatorMinutes from "../stats/page";
@@ -25,7 +25,6 @@ export default function Page() {
 
   const userUtterances = sum(data.intervals, (interval) => interval.utterances.length);
   const partnerUtterances = sum(partnerData.intervals, (interval) => interval.utterances.length);
-  const totalUtterances = userUtterances + partnerUtterances;
 
   let negativeEmotionCounter = 0;
   let positiveEmotionCounter = 0;
@@ -53,8 +52,10 @@ export default function Page() {
 
   const nonVerbalExpressions = lastInterval.emotions.length;
 
-  const linesOfCode = lastInterval.keystrokes;
+  // const linesOfCode = lastInterval.keystrokes;
   // const partnerLinesOfCode = partnerData.intervals[partnerData.intervals.length - 1].keystrokes;
+  const linesOfCode = 1;
+  const partnerLinesOfCode = 1;
 
   return (
     <>
@@ -79,7 +80,7 @@ export default function Page() {
                 }</strong>
             </li>
           </ul>
-          <div className="flex pt-4">
+          <div className="flex pt-4 mb-8 space-x-10">
             <div className="flex-1 text-2xl m-auto">
               <p className="mb-0">
                 Lines of code
@@ -88,9 +89,13 @@ export default function Page() {
                 Percentage of the total lines of code written by you and your partner
               </p>
             </div>
-            {/* <PieChart data={[{ label : "You", value : linesOfCode }, { label : "Partner", value : partnerLinesOfCode }]} /> */}
+            <PieChart 
+              data={[{ label : "You", value : linesOfCode }, { label : "Partner", value : partnerLinesOfCode }]} 
+              width={150}
+              height={150}
+            />
           </div>
-          <div className="flex pt-4">
+          <div className="flex pt-4 mb-8 space-x-10">
             <div className="flex-1 text-2xl m-auto">
               <p className="mb-0">
                 Communication Style
@@ -102,11 +107,11 @@ export default function Page() {
             </div>
             <PieChart 
               data={[{ label : "Verbal", value : userUtterances }, { label : "Non-Verbal", value : nonVerbalExpressions }]}
-              outerRadius={100}
-              innerRadius={0}
+              width={150}
+              height={150}
             />
           </div>
-          <div className="flex pt-4">
+          <div className="flex pt-4 mb-8 space-x-10">
             <div className="flex-1 text-2xl m-auto">
               <p className="mb-0">
                 Interruptions
@@ -115,10 +120,14 @@ export default function Page() {
                 Number of times you interrupted your partner and the number of times they interrupted you.
               </p>
             </div>
-            {/* <PieChart data={[{ label : "You", value : interruptions }, { label : "Partner", value : partnerInterruptions }]} /> */}
+            {/* <PieChart 
+              data={[{ label : "You", value : interruptions }, { label : "Partner", value : partnerInterruptions }]}
+              width={150}
+              height={150}
+            /> */}
             <div className="flex-2">Pie Chart Goes Here</div>
           </div>
-          <div className="flex pt-4">
+          <div className="flex pt-4 mb-8 space-x-10">
             <div className="flex-1 text-2xl m-auto">
               <p className="mb-0">
                 Leadership Style
@@ -127,7 +136,11 @@ export default function Page() {
                 Were the number of total lines of code written by you and your partner equal?
               </p>
             </div>
-            {/* <PieChart data={[{ label : "You", value : linesOfCode }, { label : "Partner", value : partnerLinesOfCode }]} /> */}
+            {/* <PieChart 
+              data={[{ label : "You", value : linesOfCode }, { label : "Partner", value : partnerLinesOfCode }]} 
+              width={150}
+              height={150}
+            /> */}
             <div className="flex-2">Pie Chart Goes Here</div>
           </div>
         </div>
