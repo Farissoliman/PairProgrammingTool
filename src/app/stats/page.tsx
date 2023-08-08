@@ -2,7 +2,7 @@
 
 import { durationString, sum } from "@/utils";
 import { getUID, getPartnerUID, useAutoRerender, useStats } from "@/utils/react";
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { WebSocketContext } from "../layout";
 
 const getInterruptions = (interval: {
@@ -14,18 +14,18 @@ const getInterruptions = (interval: {
     utterance: string;
     end_time: number;
   }[]| null) => {
-  let interruptions = 0;
+  let overlap = 0;
   if (interval && partnerInterval) {
     for (const element of interval) {
         const utterance = element;
         for (const element of partnerInterval) {
             if (utterance.start_time >= element.start_time && utterance.start_time <= element.end_time) {
-                interruptions++;
+              overlap++;
             }
         }
     }
   }
-  return interruptions;
+  return overlap;
 };
 
 const SESSION_DURATION = 45 * 60 * 1_000; // 45-minute session duration
@@ -36,9 +36,21 @@ export default function Page() {
   const { data, isLoading } = useStats(id);
   const { data: partnerData} = useStats(partnerId);
 
-  const { sendJsonMessage } = useContext(WebSocketContext)!;
+  const { sendJsonMessage, lastJsonMessage } = useContext(WebSocketContext)!;
+  
 
   useAutoRerender(); // Re-render every second to refresh the timer
+
+  useEffect(() => {
+    if (lastJsonMessage && "action" in lastJsonMessage && data && partnerData) {
+      if (lastJsonMessage.action === "update_interruptions") {
+        sendJsonMessage({
+          action: "update_interruptions",
+          interruptions: interruptions,
+        });
+      }
+    }
+  }, [lastJsonMessage]);
 
   if (isLoading) {
     return <p>Loading...</p>;
@@ -102,11 +114,10 @@ export default function Page() {
     interruptions = getInterruptions(lastInterval.utterances, partnerLastInterval.utterances);
   }
 
-  sendJsonMessage({ action: "update_interruptions", interruptions: interruptions});
-
   // End session when time is up
   if (timeLeft === "00:00") {
     sendJsonMessage({ action: "end" });
+    sendJsonMessage({ action: "update_interruptions", interruptions: interruptions});
   }
 
   return (
@@ -114,14 +125,14 @@ export default function Page() {
       <main className="prose relative mx-auto flex max-w-lg flex-col gap-4 p-4 dark:prose-invert prose-headings:my-2">
         <div className="flex items-center justify-between">
           <div>
-            <h1>{isDriver ? "Driver" : "Navigator"}</h1>
+            <h1>You are {isDriver ? "Driver" : "Navigator"}</h1>
             <span className="text-sm">
               {Math.round(currentIntervalDuration / 1000 / 60)} minutes since
               last switch
             </span>
           </div>
         </div>
-        <p>
+        {/* <p>
           {isDriver ? (
             <>
               As the driver, you&apos;re in charge of code editing. Delegate
@@ -135,21 +146,7 @@ export default function Page() {
               code while you keep track of the big picture.
             </>
           )}
-        </p>
-
-        <div>
-          <h2>Task</h2>
-          <p>
-            Your task is to create a functional tic-tac-toe game from the
-            provided template. You must work with your partner and should
-            attempt to implement the following features:
-          </p>
-          <ul>
-            <li>Board state</li>
-            <li>Turn system</li>
-            <li>Win detection</li>
-          </ul>
-        </div>
+        </p> */}
 
         <div>
           <h2>Statistics</h2>
@@ -219,7 +216,14 @@ export default function Page() {
 
         <button
           className="rounded-md bg-blue-500 px-3 py-2 text-white"
-          onClick={() => sendJsonMessage({ action: "switch" })}
+          onClick={() => {
+            data.session_end = Date.now();
+            sendJsonMessage({ action: "switch" });
+            sendJsonMessage({
+              action: "update_interruptions",
+              interruptions: interruptions,
+            });
+          }}
         >
           Switch to {isDriver ? "Navigator" : "Driver"} &rarr;
         </button>
@@ -246,6 +250,10 @@ export default function Page() {
                 }
                 data.session_end = Date.now();
                 sendJsonMessage({ action: "end" });
+                sendJsonMessage({
+                  action: "update_interruptions",
+                  interruptions: interruptions,
+                });
               }}
             >
               End Session

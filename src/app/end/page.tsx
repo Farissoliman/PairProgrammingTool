@@ -122,7 +122,6 @@ export default function Page() {
               width={150}
               height={150}
             />
-            <div className="flex-2">Pie Chart Goes Here</div>
           </div>
           <div className="flex pt-4 mb-8 space-x-10">
             <div className="flex-1 text-xl m-auto">
