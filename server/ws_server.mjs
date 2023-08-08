@@ -240,27 +240,39 @@ wss.on("connection", (ws, request) => {
           const coll = await getCollection();
           const finished = Date.now();
             await coll.updateOne(
-                {
-                    _id: uid,
+              {
+                _id: uid,
+              },
+              {
+                $set: {
+                  session_end: finished,
                 },
-                {
-                    $set: {
-                        session_end: finished,
-                    },
-                }
+              }
             );
-            await coll.updateOne(
-                {
-                    _id: partnerUid,
+            await coll.updateOne( // Will need to be commented out when server is connected
+              {
+                _id: partnerUid,
+              },
+              {
+                $set: {
+                  session_end: finished,
                 },
-                {
-                    $set: {
-                        session_end: finished,
-                    },
-                }
+              }
             );
           // disconnect webserver and send disconnect message
           send([uid, partnerUid], { action: "end" });
+        } else if (message.action === "update_interruptions") {
+          const coll = await getCollection();
+            await coll.updateOne(
+              {
+                _id: uid,
+              },
+              {
+                $set: {
+                  interruptions: message.interruptions,
+                },
+              }
+            );
         } else {
           console.warn(`No action in WS message: ${message}`);
         }

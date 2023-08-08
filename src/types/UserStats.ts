@@ -4,6 +4,7 @@ export type UserStats = {
   _id: string;
   session_start: number;
   starting_status: Status;
+  interruptions: number;
   intervals: {
     status: Status;
     emotions: {

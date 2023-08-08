@@ -5,13 +5,36 @@ import { getUID, getPartnerUID, useAutoRerender, useStats } from "@/utils/react"
 import { useContext } from "react";
 import { WebSocketContext } from "../layout";
 
+const getInterruptions = (interval: {
+    start_time: number;
+    utterance: string;
+    end_time: number;
+  }[] | null, partnerInterval: {
+    start_time: number;
+    utterance: string;
+    end_time: number;
+  }[]| null) => {
+  let interruptions = 0;
+  if (interval && partnerInterval) {
+    for (const element of interval) {
+        const utterance = element;
+        for (const element of partnerInterval) {
+            if (utterance.start_time >= element.start_time && utterance.start_time <= element.end_time) {
+                interruptions++;
+            }
+        }
+    }
+  }
+  return interruptions;
+};
+
 const SESSION_DURATION = 45 * 60 * 1_000; // 45-minute session duration
 
 export default function Page() {
   const id = getUID();
   const partnerId = getPartnerUID();
   const { data, isLoading } = useStats(id);
-  const { data: partnerData } = useStats(partnerId);
+  const { data: partnerData} = useStats(partnerId);
 
   const { sendJsonMessage } = useContext(WebSocketContext)!;
 
@@ -69,23 +92,17 @@ export default function Page() {
 
   // Get keystrokes and keystroke contribution between partners
   const keystrokes = data.intervals.length > 0 ? lastInterval.keystrokes : 0;
-  const partnerLastInterval = partnerData?.intervals[partnerData.intervals.length - 1];
-  const partnerKeystrokes = partnerLastInterval ? partnerLastInterval.keystrokes : 0;
-  const keystrokeContribution = (keystrokes + partnerKeystrokes) == 0 ? "--%" : keystrokes / (keystrokes + partnerKeystrokes) * 100 + "%";
 
-  // Count interruptions between partner data and user data
+  let keystrokeContribution = "--%";
   let interruptions = 0;
-  if (lastInterval && partnerLastInterval) {
-    for (const element of lastInterval.utterances) {
-        const utterance = element;
-        for (const element of partnerLastInterval.utterances) {
-            const partnerUtterance = element;
-            if (utterance.start_time >= partnerUtterance.start_time && utterance.start_time <= partnerUtterance.end_time) {
-                interruptions++;
-            }
-        }
-    }
+  if (partnerData && data.intervals.length > 0 && partnerData.intervals.length > 0) {
+    const partnerLastInterval = partnerData.intervals[partnerData.intervals.length - 1];
+    const partnerKeystrokes = partnerLastInterval ? partnerLastInterval.keystrokes : 0;
+    keystrokeContribution = (keystrokes + partnerKeystrokes) == 0 ? "--%" : keystrokes / (keystrokes + partnerKeystrokes) * 100 + "%";
+    interruptions = getInterruptions(lastInterval.utterances, partnerLastInterval.utterances);
   }
+
+  sendJsonMessage({ action: "update_interruptions", interruptions: interruptions});
 
   // End session when time is up
   if (timeLeft === "00:00") {
