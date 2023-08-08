@@ -273,6 +273,9 @@ wss.on("connection", (ws, request) => {
                 },
               }
             );
+            send (partnerUid, {
+              action: "update_interruptions" }
+              )
         } else {
           console.warn(`No action in WS message: ${message}`);
         }
