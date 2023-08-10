@@ -2,9 +2,15 @@
 
 import { PieChart } from "@/app/components/pieChart";
 import { getInterruptions, sum } from "@/utils";
-import { resetUID, setPartnerUID } from "@/utils/react";
+import {
+  getPartnerUID,
+  getUID,
+  resetUID,
+  setPartnerUID,
+  useStats,
+} from "@/utils/react";
 
-import { Interval, UserStats } from "@/types/UserStats";
+import { Interval } from "@/types/UserStats";
 import { useMemo } from "react";
 import {
   Accordion,
@@ -36,100 +42,10 @@ const getAllEmotions = (intervals: Interval[]) => {
 };
 
 export default function Page() {
-  // const id = getUID();
-  // const partnerId = getPartnerUID();
-  // const { data, isLoading } = useStats(id);
-  // const { data: partnerData } = useStats(partnerId);
-
-  const isLoading = false;
-  const data: UserStats = {
-    _id: "kraals-flobbed-oxysomes",
-    partnerUid: "beguilingly-kilojoule-poussins",
-    intervals: [
-      {
-        start: 1689261479.667416,
-        emotions: [
-          { emotion: "angry", timestamp: 1689261485.5023942 },
-          { emotion: "fear", timestamp: 1689261486.851091 },
-          { emotion: "sad", timestamp: 1689261496.4842188 },
-          { emotion: "fear", timestamp: 1689261499.509042 },
-          { emotion: "sad", timestamp: 1689261507.066443 },
-          { emotion: "fear", timestamp: 1689261509.4441128 },
-          { emotion: "sad", timestamp: 1689261511.2509592 },
-          { emotion: "fear", timestamp: 1689261513.281504 },
-          { emotion: "neutral", timestamp: 1689261515.422475 },
-          { emotion: "fear", timestamp: 1689261517.9135628 },
-        ],
-        utterances: [
-          {
-            start_time: 1689261486.40013,
-            utterance: "okay so it's listening to cameras turned on",
-            end_time: 1689261488.392077,
-          },
-          {
-            start_time: 1689261509.356838,
-            utterance: "the website and then click the blue button",
-            end_time: 1689261511.921773,
-          },
-        ],
-        keystrokes: 182,
-        status: "navigator",
-      },
-    ],
-    session_start: 1691677233350,
-    starting_status: "navigator",
-    session_end: 1691677823547,
-  };
-
-  const partnerData: UserStats = {
-    _id: "beguilingly-kilojoule-poussins",
-    partnerUid: "kraals-flobbed-oxysomes",
-    intervals: [
-      {
-        start: 1689261479.667416,
-        emotions: [
-          { emotion: "angry", timestamp: 1689261485.5023942 },
-          { emotion: "fear", timestamp: 1689261486.851091 },
-          { emotion: "sad", timestamp: 1689261496.4842188 },
-          { emotion: "fear", timestamp: 1689261499.509042 },
-          { emotion: "happy", timestamp: 1689261499.509042 },
-          { emotion: "sad", timestamp: 1689261507.066443 },
-        ],
-        utterances: [
-          {
-            start_time: 1689261486.40013,
-            utterance: "okay so it's listening to cameras turned on",
-            end_time: 1689261488.392077,
-          },
-          {
-            start_time: 1689261509.356838,
-            utterance: "the website and then click the blue button",
-            end_time: 1689261511.921773,
-          },
-          {
-            start_time: 1689261509.356838,
-            utterance: "the website and then click the blue button",
-            end_time: 1689261511.921773,
-          },
-          {
-            start_time: 1689261509.356838,
-            utterance: "the website and then click the blue button",
-            end_time: 1689261511.921773,
-          },
-          {
-            start_time: 1689261509.356838,
-            utterance: "the website and then click the blue button",
-            end_time: 1689261511.921773,
-          },
-        ],
-        keystrokes: 182,
-        status: "driver",
-      },
-    ],
-    session_start: 1691677233349,
-    starting_status: "driver",
-    session_end: 1691677823547,
-  };
+  const id = getUID();
+  const partnerId = getPartnerUID();
+  const { data, isLoading } = useStats(id);
+  const { data: partnerData } = useStats(partnerId);
 
   if (isLoading) {
     return <p>Loading...</p>;
