@@ -93,7 +93,7 @@ export const useRouting = () => {
         router.push(path);
       }
     },
-    [pathname]
+    [pathname, router]
   );
 
   useEffect(() => {
@@ -104,7 +104,7 @@ export const useRouting = () => {
     } else if (lastJsonMessage?.action === "start") {
       queryClient.invalidateQueries(["stats", uid]);
     }
-  }, [lastJsonMessage, queryClient]);
+  }, [lastJsonMessage, queryClient, uid]);
 
   useEffect(() => {
     const partnerUid = getPartnerUID();

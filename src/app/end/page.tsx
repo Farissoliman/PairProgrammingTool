@@ -58,19 +58,19 @@ export default function Page() {
     return <p>No data yet!</p>;
   }
 
-  const userUtterances = sum(
-    data.intervals,
-    (interval) => interval.utterances.length
-  );
-  const partnerUtterances = sum(
-    partnerData.intervals,
-    (interval) => interval.utterances.length
-  );
-
   // Check if intervals array exists and has at least one element
   if (data.intervals.length === 0) {
     return <p>No intervals data yet!</p>;
   }
+
+  return <EndPage />;
+}
+
+const EndPage = () => {
+  const id = getUID();
+  const partnerId = getPartnerUID();
+  const data = useStats(id).data!;
+  const partnerData = useStats(partnerId).data!;
 
   const lastInterval = data.intervals?.[data.intervals?.length - 1];
   const lastPartnerInterval =
@@ -83,6 +83,15 @@ export default function Page() {
   const partnerEmotions = useMemo(() => {
     return getAllEmotions(partnerData.intervals);
   }, [partnerData.intervals]);
+
+  const userUtterances = sum(
+    data.intervals,
+    (interval) => interval.utterances.length
+  );
+  const partnerUtterances = sum(
+    partnerData.intervals,
+    (interval) => interval.utterances.length
+  );
 
   const userInterruptions = useMemo(
     () =>
@@ -311,4 +320,4 @@ export default function Page() {
       </main>
     </>
   );
-}
+};

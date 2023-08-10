@@ -17,6 +17,7 @@ export const PieChart: React.FC<Props> = ({ data, width, height }) => {
 
   useEffect(() => {
     if (!svgRef.current) return;
+    const node = svgRef.current;
 
     // Define the radius and center of the pie chart
     const radius = Math.min(width, height) / 2;
@@ -64,9 +65,7 @@ export const PieChart: React.FC<Props> = ({ data, width, height }) => {
       .text((d) => d.data.label);
 
     return () => {
-      if (svgRef.current) {
-        svgRef.current.innerHTML = "";
-      }
+      node.innerHTML = "";
     };
   }, [data, width, height]);
 

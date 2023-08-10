@@ -92,7 +92,7 @@ const StatsPage = () => {
     return keystrokes + partnerKeystrokes == 0
       ? "--%"
       : Math.round((keystrokes / (keystrokes + partnerKeystrokes)) * 100) + "%";
-  }, [lastInterval, partnerLastInterval]);
+  }, [partnerLastInterval, keystrokes]);
 
   const interruptions = useMemo(
     () =>
