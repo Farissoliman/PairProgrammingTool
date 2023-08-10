@@ -1,6 +1,5 @@
 import { WebSocketContext } from "@/app/layout";
 import { UserStats } from "@/types/UserStats";
-import { createId } from "@paralleldrive/cuid2";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useContext, useEffect, useState } from "react";
@@ -29,10 +28,14 @@ export const getUID = () => {
   if (typeof window === "undefined") {
     return null;
   }
+
   let uid = localStorage.getItem("UID");
   if (!uid) {
-    uid = createId();
-    localStorage.setItem("UID", uid);
+    fetch("/api/generate_id")
+      .then((res) => res.text())
+      .then((res) => {
+        localStorage.setItem("UID", res);
+      });
   }
   return uid;
 };
@@ -116,9 +119,9 @@ export const useRouting = () => {
     } else if (data?.session_start) {
       goto("/stats");
     } else if (uid && partnerUid) {
-        goto("/start");
+      goto("/start");
     } else {
-        goto("/pair");
+      goto("/pair");
     }
   }, [data, isLoading, uid, state, goto]);
 };
