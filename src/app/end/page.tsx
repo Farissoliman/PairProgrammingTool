@@ -1,147 +1,388 @@
 "use client";
 
-import { sum } from "@/utils";
-import { getUID, getPartnerUID, useStats, resetUID, setPartnerUID } from "@/utils/react";
 import { PieChart } from "@/app/components/pieChart";
+import { getInterruptions, sum } from "@/utils";
+import { resetUID, setPartnerUID } from "@/utils/react";
 
-import driverMinutes from "../stats/page";
-import navigatorMinutes from "../stats/page";
+import { Interval, UserStats } from "@/types/UserStats";
+import { useMemo } from "react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/accordion";
+import {
+  default as driverMinutes,
+  default as navigatorMinutes,
+} from "../stats/page";
 
+const getAllEmotions = (intervals: Interval[]) => {
+  const count = { neutral: 0, positive: 0, negative: 0 };
+
+  for (const interval of intervals) {
+    for (const { emotion } of interval.emotions) {
+      if (emotion === "fear" || emotion === "sad" || emotion === "angry") {
+        count.negative++;
+      } else if (emotion === "happy") {
+        count.positive++;
+      } else {
+        count.neutral++;
+      }
+    }
+  }
+
+  return count;
+};
 
 export default function Page() {
-  const id = getUID();
-  const partnerId = getPartnerUID();
-  const { data, isLoading } = useStats(id);
-  const { data: partnerData } = useStats(partnerId);
+  // const id = getUID();
+  // const partnerId = getPartnerUID();
+  // const { data, isLoading } = useStats(id);
+  // const { data: partnerData } = useStats(partnerId);
+
+  const isLoading = false;
+  const data: UserStats = {
+    _id: "kraals-flobbed-oxysomes",
+    partnerUid: "beguilingly-kilojoule-poussins",
+    intervals: [
+      {
+        start: 1689261479.667416,
+        emotions: [
+          { emotion: "angry", timestamp: 1689261485.5023942 },
+          { emotion: "fear", timestamp: 1689261486.851091 },
+          { emotion: "sad", timestamp: 1689261496.4842188 },
+          { emotion: "fear", timestamp: 1689261499.509042 },
+          { emotion: "sad", timestamp: 1689261507.066443 },
+          { emotion: "fear", timestamp: 1689261509.4441128 },
+          { emotion: "sad", timestamp: 1689261511.2509592 },
+          { emotion: "fear", timestamp: 1689261513.281504 },
+          { emotion: "neutral", timestamp: 1689261515.422475 },
+          { emotion: "fear", timestamp: 1689261517.9135628 },
+        ],
+        utterances: [
+          {
+            start_time: 1689261486.40013,
+            utterance: "okay so it's listening to cameras turned on",
+            end_time: 1689261488.392077,
+          },
+          {
+            start_time: 1689261509.356838,
+            utterance: "the website and then click the blue button",
+            end_time: 1689261511.921773,
+          },
+        ],
+        keystrokes: 182,
+        status: "navigator",
+      },
+    ],
+    session_start: 1691677233350,
+    starting_status: "navigator",
+    session_end: 1691677823547,
+  };
+
+  const partnerData: UserStats = {
+    _id: "beguilingly-kilojoule-poussins",
+    partnerUid: "kraals-flobbed-oxysomes",
+    intervals: [
+      {
+        start: 1689261479.667416,
+        emotions: [
+          { emotion: "angry", timestamp: 1689261485.5023942 },
+          { emotion: "fear", timestamp: 1689261486.851091 },
+          { emotion: "sad", timestamp: 1689261496.4842188 },
+          { emotion: "fear", timestamp: 1689261499.509042 },
+          { emotion: "happy", timestamp: 1689261499.509042 },
+          { emotion: "sad", timestamp: 1689261507.066443 },
+        ],
+        utterances: [
+          {
+            start_time: 1689261486.40013,
+            utterance: "okay so it's listening to cameras turned on",
+            end_time: 1689261488.392077,
+          },
+          {
+            start_time: 1689261509.356838,
+            utterance: "the website and then click the blue button",
+            end_time: 1689261511.921773,
+          },
+          {
+            start_time: 1689261509.356838,
+            utterance: "the website and then click the blue button",
+            end_time: 1689261511.921773,
+          },
+          {
+            start_time: 1689261509.356838,
+            utterance: "the website and then click the blue button",
+            end_time: 1689261511.921773,
+          },
+          {
+            start_time: 1689261509.356838,
+            utterance: "the website and then click the blue button",
+            end_time: 1689261511.921773,
+          },
+        ],
+        keystrokes: 182,
+        status: "driver",
+      },
+    ],
+    session_start: 1691677233349,
+    starting_status: "driver",
+    session_end: 1691677823547,
+  };
 
   if (isLoading) {
     return <p>Loading...</p>;
-  } else if (!data || !data.session_end || !partnerData || !partnerData.session_end) {
+  } else if (
+    !data ||
+    !data.session_end ||
+    !partnerData ||
+    !partnerData.session_end
+  ) {
     return <p>No data yet!</p>;
   }
 
-  const userUtterances = sum(data.intervals, (interval) => interval.utterances.length);
-  const partnerUtterances = sum(partnerData.intervals, (interval) => interval.utterances.length);
-
-  let negativeEmotionCounter = 0;
-  let positiveEmotionCounter = 0;
-  let neutralEmotionCounter = 0;
+  const userUtterances = sum(
+    data.intervals,
+    (interval) => interval.utterances.length
+  );
+  const partnerUtterances = sum(
+    partnerData.intervals,
+    (interval) => interval.utterances.length
+  );
 
   // Check if intervals array exists and has at least one element
   if (data.intervals.length === 0) {
     return <p>No intervals data yet!</p>;
   }
-  
-  const lastInterval = data.intervals[data.intervals.length - 1];
-  for (let i = 0; i < lastInterval.emotions.length; i++) {
-    const emotion = data.intervals[data.intervals.length - 1].emotions[i];
-    if (emotion.emotion === "fear" || emotion.emotion === "sad" || emotion.emotion === "anger"
-        || emotion.emotion === "disgust") {
-          negativeEmotionCounter++;
-        }
-    else if (emotion.emotion === "happy") {
-      positiveEmotionCounter++;
-    }
-    else {
-      neutralEmotionCounter++;
-    }
-  }
 
-  const nonVerbalExpressions = lastInterval.emotions.length;
+  const lastInterval = data.intervals?.[data.intervals?.length - 1];
+  const lastPartnerInterval =
+    partnerData.intervals?.[partnerData.intervals?.length - 1];
 
-  // const linesOfCode = lastInterval.keystrokes;
-  // const partnerLinesOfCode = partnerData.intervals[partnerData.intervals.length - 1].keystrokes;
-  const linesOfCode = 1;
-  const partnerLinesOfCode = 1;
+  const emotions = useMemo(() => {
+    return getAllEmotions(data.intervals);
+  }, [data.intervals]);
+
+  const partnerEmotions = useMemo(() => {
+    return getAllEmotions(partnerData.intervals);
+  }, [partnerData.intervals]);
+
+  const userInterruptions = useMemo(
+    () =>
+      getInterruptions(lastInterval.utterances, lastPartnerInterval.utterances),
+    [lastInterval, lastPartnerInterval]
+  );
+
+  const partnerInterruptions = useMemo(
+    () =>
+      getInterruptions(lastPartnerInterval.utterances, lastInterval.utterances),
+    [lastInterval, lastPartnerInterval]
+  );
+
+  const linesOfCode = lastInterval.keystrokes;
+  const partnerLinesOfCode =
+    partnerData.intervals[partnerData.intervals.length - 1].keystrokes;
 
   return (
     <>
       <main className="prose relative mx-auto flex max-w-lg flex-col gap-4 p-10 dark:prose-invert prose-headings:my-2">
         <div>
-          <h2>Congratulations</h2>
+          <h2>🎉 Congratulations</h2>
           <p className="text-sm">
-            Congratulations on finishing your pair programming session!
+            Congratulations on finishing your pair programming session! Expand
+            each section to learn more about your session.
           </p>
-          <hr className="m-0"/>
         </div>
-        <div>
-          <h3>Session Summary</h3>
-          <div></div>
-          <ul className="mb-4">
-            <li className="text-sm">
-              You acted primarily as <strong>{driverMinutes > navigatorMinutes ? "Driver" : "Navigator"}</strong>
-            </li>
-            <li className="text-sm"> 
-              Overall, you seemed <strong>{
-                negativeEmotionCounter > (positiveEmotionCounter + neutralEmotionCounter) ? "Unhappy" : "Happy"
-                }</strong>
-            </li>
-          </ul>
-          <div className="flex pt-4 mb-8 space-x-10">
-            <div className="flex-1 text-xl m-auto">
-              <p className="mb-0">
-                Keystrokes
+
+        <Accordion
+          type="single"
+          collapsible
+          defaultValue="item-0"
+          className="w-full"
+        >
+          <AccordionItem value="item-0">
+            <AccordionTrigger className="h-6">Session Summary</AccordionTrigger>
+            <AccordionContent>
+              <ul>
+                <li className="text-sm">
+                  You acted primarily as{" "}
+                  <strong>
+                    {driverMinutes > navigatorMinutes ? "Driver" : "Navigator"}
+                  </strong>
+                </li>
+                <li className="text-sm">
+                  {emotions && (
+                    <>
+                      Overall, you seemed{" "}
+                      <strong>
+                        {emotions!.negative >
+                        emotions!.positive + emotions!.neutral
+                          ? "Unhappy"
+                          : "Happy"}
+                      </strong>
+                    </>
+                  )}
+                </li>
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="item-1">
+            <AccordionTrigger className="h-6">Keystrokes</AccordionTrigger>
+            <AccordionContent>
+              <p className="mt-0 text-sm text-gray-400">
+                Percentage of the total keystrokes written by you and your
+                partner
               </p>
-              <p className="text-xs mt-3 opacity-60">
-                Percentage of the total keystrokes written by you and your partner
+              <PieChart
+                data={[
+                  { label: "You", value: linesOfCode },
+                  { label: "Partner", value: partnerLinesOfCode },
+                ]}
+                width={150}
+                height={150}
+              />
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="item-2">
+            <AccordionTrigger className="h-6">
+              Communication Style
+            </AccordionTrigger>
+            <AccordionContent>
+              <p className="mt-0 text-sm text-gray-400">
+                Number of utterances spoken by you (verbal) vs Number of facial
+                expressions (non-verbal)
               </p>
-            </div>
-            <PieChart 
-              data={[{ label : "You", value : linesOfCode }, { label : "Partner", value : partnerLinesOfCode }]} 
-              width={80}
-              height={80}
-            />
-          </div>
-          <div className="flex pt-4 mb-8 space-x-10">
-            <div className="flex-1 text-xl m-auto">
-              <p className="mb-0">
-                Communication Style
+              <div className="grid grid-cols-2">
+                <h3>You</h3>
+                <h3>Your Partner</h3>
+                <PieChart
+                  data={[
+                    {
+                      label: "Verbal",
+                      value: sum(
+                        data.intervals,
+                        (interval) => interval.utterances.length
+                      ),
+                    },
+                    {
+                      label: "Non-Verbal",
+                      value: sum(
+                        data.intervals,
+                        (interval) => interval.emotions.length
+                      ),
+                    },
+                  ]}
+                  width={150}
+                  height={150}
+                />
+                <PieChart
+                  data={[
+                    {
+                      label: "Verbal",
+                      value: sum(
+                        partnerData.intervals,
+                        (interval) => interval.utterances.length
+                      ),
+                    },
+                    {
+                      label: "Non-Verbal",
+                      value: sum(
+                        partnerData.intervals,
+                        (interval) => interval.emotions.length
+                      ),
+                    },
+                  ]}
+                  width={150}
+                  height={150}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="item-3">
+            <AccordionTrigger className="h-6">
+              Verbal Communication (Utterances)
+            </AccordionTrigger>
+            <AccordionContent>
+              <p className="mt-0 text-sm text-gray-400">
+                Lorem ipsum dolor sit, amet consectetur adipisicing elit. Vel
+                quas atque ipsa vero qui quaerat amet, asperiores laudantium
+                illum incidunt, velit possimus sed?
               </p>
-              <p className="text-xs mt-3 opacity-60">
-                Number of utterances spoken by you (verbal) vs 
-                Number of facial expressions (non-verbal)
+              <PieChart
+                data={[
+                  { label: "You", value: userUtterances },
+                  { label: "Your Partner", value: partnerUtterances },
+                ]}
+                width={150}
+                height={150}
+              />
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="item-4">
+            <AccordionTrigger className="h-6">Interruptions</AccordionTrigger>
+            <AccordionContent>
+              <p className="mt-0 text-sm text-gray-400">
+                Number of times you interrupted your partner and the number of
+                times they interrupted you.
               </p>
-            </div>
-            <PieChart 
-              data={[{ label : "Verbal", value : userUtterances }, { label : "Non-Verbal", value : nonVerbalExpressions }]}
-              width={80}
-              height={80}
-            />
-          </div>
-          <div className="flex pt-4 mb-8 space-x-10">
-            <div className="flex-1 text-xl m-auto">
-              <p className="mb-0">
-                Interruptions
+              <div className="flex justify-between">
+                <ul>
+                  <li>
+                    <strong>You</strong>: {userInterruptions} interruptions
+                  </li>
+                  <li>
+                    <strong>Your Partner</strong>: {userInterruptions}{" "}
+                    interruptions
+                  </li>
+                </ul>
+
+                <PieChart
+                  data={[
+                    { label: "You", value: userInterruptions },
+                    { label: "Your Partner", value: partnerInterruptions },
+                  ]}
+                  width={150}
+                  height={150}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="item-5">
+            <AccordionTrigger className="h-6">Emotions</AccordionTrigger>
+            <AccordionContent>
+              <p className="mt-0 text-sm text-gray-400">
+                Lorem ipsum dolor sit, amet consectetur adipisicing elit. Vel
+                quas atque ipsa vero qui quaerat amet, asperiores laudantium
+                illum incidunt, velit possimus sed?
               </p>
-              <p className="text-xs mt-3 opacity-60">
-                Number of times you interrupted your partner and the number of times they interrupted you.
-              </p>
-            </div>
-            <PieChart 
-              data={[{ label : "You", value : data.interruptions }, { label : "Partner", value : partnerData.interruptions }]}
-              width={150}
-              height={150}
-            />
-          </div>
-          <div className="flex pt-4 mb-8 space-x-10">
-            <div className="flex-1 text-xl m-auto">
-              <p className="mb-0">
-                Your Emotions
-              </p>
-              <p className="text-xs mt-3 opacity-60">
-                Were the number of total lines of code written by you and your partner equal?
-              </p>
-            </div>
-            {/* <PieChart 
-              data={[{ label : "You", value : linesOfCode }, { label : "Partner", value : partnerLinesOfCode }]} 
-              width={150}
-              height={150}
-            /> */}
-            <div className="flex-2">Pie Chart Goes Here</div>
-          </div>
-        </div>
+              <div className="grid grid-cols-2">
+                <h3>You</h3>
+                <h3>Your Partner</h3>
+                <PieChart
+                  data={[
+                    { label: "Positive", value: emotions.positive ?? 0 },
+                    { label: "Neutral", value: emotions.neutral ?? 0 },
+                    { label: "Negative", value: emotions.negative ?? 0 },
+                  ]}
+                  width={150}
+                  height={150}
+                />
+                <PieChart
+                  data={[
+                    { label: "Positive", value: partnerEmotions.positive ?? 0 },
+                    { label: "Neutral", value: partnerEmotions.neutral ?? 0 },
+                    { label: "Negative", value: partnerEmotions.negative ?? 0 },
+                  ]}
+                  width={150}
+                  height={150}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
         <button
-          className="rounded-md bg-blue-500 px-3 py-2 text-white mt-12"
+          className="mt-12 rounded-md bg-blue-500 px-3 py-2 text-white"
           onClick={(e) => {
             e.preventDefault();
             resetUID();

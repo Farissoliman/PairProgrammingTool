@@ -1,32 +1,15 @@
 "use client";
 
-import { durationString, sum } from "@/utils";
-import { getUID, getPartnerUID, useAutoRerender, useStats } from "@/utils/react";
-import { useContext, useEffect } from "react";
+import { Interval } from "@/types/UserStats";
+import { durationString, getInterruptions, sum } from "@/utils";
+import {
+  getPartnerUID,
+  getUID,
+  useAutoRerender,
+  useStats,
+} from "@/utils/react";
+import { useContext, useMemo } from "react";
 import { WebSocketContext } from "../layout";
-
-const getInterruptions = (interval: {
-    start_time: number;
-    utterance: string;
-    end_time: number;
-  }[] | null, partnerInterval: {
-    start_time: number;
-    utterance: string;
-    end_time: number;
-  }[]| null) => {
-  let overlap = 0;
-  if (interval && partnerInterval) {
-    for (const element of interval) {
-        const utterance = element;
-        for (const element of partnerInterval) {
-            if (utterance.start_time >= element.start_time && utterance.start_time <= element.end_time) {
-              overlap++;
-            }
-        }
-    }
-  }
-  return overlap;
-};
 
 const SESSION_DURATION = 45 * 60 * 1_000; // 45-minute session duration
 
@@ -34,29 +17,23 @@ export default function Page() {
   const id = getUID();
   const partnerId = getPartnerUID();
   const { data, isLoading } = useStats(id);
-  const { data: partnerData} = useStats(partnerId);
-
-  const { sendJsonMessage, lastJsonMessage } = useContext(WebSocketContext)!;
-  
-
-  useAutoRerender(); // Re-render every second to refresh the timer
-
-  useEffect(() => {
-    if (lastJsonMessage && "action" in lastJsonMessage && data && partnerData) {
-      if (lastJsonMessage.action === "update_interruptions") {
-        sendJsonMessage({
-          action: "update_interruptions",
-          interruptions: interruptions,
-        });
-      }
-    }
-  }, [lastJsonMessage]);
 
   if (isLoading) {
     return <p>Loading...</p>;
   } else if (!data || !data.session_start) {
     return <p>No data yet!</p>;
+  } else {
+    return <StatsPage />;
   }
+}
+
+const StatsPage = () => {
+  const id = getUID();
+  const partnerId = getPartnerUID();
+  const data = useStats(id).data!;
+  const { data: partnerData } = useStats(partnerId);
+
+  const { sendJsonMessage, lastJsonMessage } = useContext(WebSocketContext)!;
 
   const utterances = sum(
     data.intervals,
@@ -91,10 +68,15 @@ export default function Page() {
     }
   }
 
-  const lastInterval = data.intervals[data.intervals.length - 1];  
+  const lastInterval: Interval | undefined =
+    data.intervals?.[data.intervals?.length - 1];
+  const partnerLastInterval: Interval | undefined =
+    partnerData?.intervals?.[partnerData?.intervals.length - 1];
+
   const isDriver = lastInterval
     ? lastInterval.status === "navigator"
     : data.starting_status === "driver";
+
   const currentIntervalDuration =
     Date.now() - (lastInterval?.start ?? data.session_start);
 
@@ -103,22 +85,25 @@ export default function Page() {
   const timeTotal = durationString(SESSION_DURATION);
 
   // Get keystrokes and keystroke contribution between partners
-  const keystrokes = data.intervals.length > 0 ? lastInterval.keystrokes : 0;
+  const keystrokes = data.intervals.length > 0 ? lastInterval!.keystrokes : 0;
 
-  let keystrokeContribution = "--%";
-  let interruptions = 0;
-  if (partnerData && data.intervals.length > 0 && partnerData.intervals.length > 0) {
-    const partnerLastInterval = partnerData.intervals[partnerData.intervals.length - 1];
-    const partnerKeystrokes = partnerLastInterval ? partnerLastInterval.keystrokes : 0;
-    keystrokeContribution = (keystrokes + partnerKeystrokes) == 0 ? "--%" : keystrokes / (keystrokes + partnerKeystrokes) * 100 + "%";
-    interruptions = getInterruptions(lastInterval.utterances, partnerLastInterval.utterances);
-  }
+  const keystrokeContribution = useMemo(() => {
+    const partnerKeystrokes = partnerLastInterval?.keystrokes ?? 0;
+    return keystrokes + partnerKeystrokes == 0
+      ? "--%"
+      : Math.round((keystrokes / (keystrokes + partnerKeystrokes)) * 100) + "%";
+  }, [lastInterval, partnerLastInterval]);
 
-  // End session when time is up
-  if (timeLeft === "00:00") {
-    sendJsonMessage({ action: "end" });
-    sendJsonMessage({ action: "update_interruptions", interruptions: interruptions});
-  }
+  const interruptions = useMemo(
+    () =>
+      getInterruptions(
+        lastInterval?.utterances,
+        partnerLastInterval?.utterances
+      ),
+    [lastInterval, partnerLastInterval]
+  );
+
+  useAutoRerender();
 
   return (
     <>
@@ -217,12 +202,7 @@ export default function Page() {
         <button
           className="rounded-md bg-blue-500 px-3 py-2 text-white"
           onClick={() => {
-            data.session_end = Date.now();
             sendJsonMessage({ action: "switch" });
-            sendJsonMessage({
-              action: "update_interruptions",
-              interruptions: interruptions,
-            });
           }}
         >
           Switch to {isDriver ? "Navigator" : "Driver"} &rarr;
@@ -245,15 +225,8 @@ export default function Page() {
             <button
               className="flex h-10 items-center justify-center rounded-md bg-red-700 px-3 py-2 text-white"
               onClick={() => {
-                {
-                  /* disconnect websocket, Render the final end stats page, and turn off speech and facial recognition */
-                }
-                data.session_end = Date.now();
+                // Disconnect websocket, render the final end stats page, and turn off speech and facial recognition */
                 sendJsonMessage({ action: "end" });
-                sendJsonMessage({
-                  action: "update_interruptions",
-                  interruptions: interruptions,
-                });
               }}
             >
               End Session
@@ -263,4 +236,4 @@ export default function Page() {
       </main>
     </>
   );
-}
+};

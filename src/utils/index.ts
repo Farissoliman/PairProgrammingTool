@@ -1,3 +1,11 @@
+import { Utterance } from "@/types/UserStats";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 export function sum<T>(arr: T[], getter: (arg0: T) => number) {
   if (!Array.isArray(arr)) return 0;
   let sum = 0;
@@ -26,3 +34,22 @@ export function durationString(millis: number) {
       .replace(/^00:/, "")
   ); // remove "00:" at the beginning if a duration has 0 hours
 }
+
+export const getInterruptions = (
+  interval: Utterance[],
+  partnerInterval?: Utterance[]
+) => {
+  if (!partnerInterval) return 0;
+  let overlap = 0;
+  for (const userUtterance of interval) {
+    for (const partnerUtterance of partnerInterval) {
+      if (
+        userUtterance.start_time >= partnerUtterance.start_time &&
+        userUtterance.start_time <= partnerUtterance.end_time
+      ) {
+        overlap++;
+      }
+    }
+  }
+  return overlap;
+};

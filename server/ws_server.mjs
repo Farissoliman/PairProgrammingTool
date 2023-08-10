@@ -1,8 +1,8 @@
 //@ts-check
 
+import { spawn } from "child_process";
 import { WebSocketServer } from "ws";
 import { getDatabase } from "../src/utils/mongo.mjs";
-import { spawn } from "child_process";
 
 const wss = new WebSocketServer({
   port: 3030,
@@ -15,14 +15,15 @@ let connections = {};
 // A list of UIDs that the WS server is expecting data from.
 let waitingOn = [];
 
-let isEnded = false;
-
 /**
  * @param {string | string[]} uids
  * @param {any} message
  */
 function send(uids, message) {
   const arr = Array.isArray(uids) ? uids : [uids];
+  if (uids === null) {
+    throw new Error("No recipient for message");
+  }
   arr.forEach((uid) => {
     connections[uid]?.forEach((ws) => {
       ws.send(JSON.stringify(message));
@@ -93,10 +94,15 @@ wss.on("connection", (ws, request) => {
   );
 
   let uid = undefined;
+  let isEnded = false;
 
   ws.send(JSON.stringify({ action: "hello" }));
 
   ws.on("message", async (data) => {
+    if (isEnded) {
+      throw new Error("Session has ended");
+    }
+
     let partnerUid = uid ? await getPartner(uid) : undefined;
 
     try {
@@ -104,191 +110,170 @@ wss.on("connection", (ws, request) => {
       console.log("Received", message);
 
       if (!uid && !message.uid) {
-        ws.send(
-          JSON.stringify({
-            error: "No UID specified or found from a previous interaction",
-          })
+        throw new Error(
+          'No UID specified or found from a previous interaction. Try clicking the "Reset" button.'
         );
-        return;
       }
 
-      if (message.action) {
-        if (message.action === "hello") {
-          uid = message.uid;
-          if (connections[uid] === undefined) {
-            connections[uid] = [ws];
-          } else {
-            connections[uid].push(ws);
-          }
-          // Make sure the client is in the correct state
-          const document = await (await getCollection()).findOne({ _id: uid });
-          if (document?.session_start) {
-            send(uid, {
-              action: "start",
-              status:
-                document.intervals && document.intervals.length > 0
-                  ? document.intervals[document.intervals.length - 1].status
-                  : document.starting_status,
-            });
-          }
-        } else if (message.action === "update_partner") {
-          // Handled below
-        } else if (message.action === "start") {
-          console.log("Starting session for ", uid, " and ", partnerUid);
-
-          const argument = uid
-
-          // Start python script
-          const child = spawn('python', ['./recognition/run.py', argument]);
-          child.stdout.on('data', function (data) {
-            console.log('stdout: ' + data);
-          });
-          child.stderr.on('data', function (data) {
-            console.log('stderr: ' + data);
-          });
-          child.on('close', function (code) {
-            console.log('child process exited with code ' + code);
-          });
-
-          // Insert a base "template" document for each user
-          const coll = await getCollection();
-          coll.updateOne(
-            {
-              _id: uid,
-            },
-            {
-              $set: {
-                session_start: Date.now(),
-                intervals: [],
-                starting_status: "driver",
-              },
-            },
-            { upsert: true }
-          );
-          coll.updateOne(
-            {
-              _id: partnerUid,
-            },
-            {
-              $set: {
-                session_start: Date.now(),
-                intervals: [],
-                starting_status: "navigator",
-              },
-            },
-            { upsert: true }
-          );
-
-          // Start the session for both partners
-          send(uid, { action: "start", status: "driver" });
-          send(partnerUid, { action: "start", status: "navigator" });
-        } else if (message.action === "switch") {
-          // Request data from both sides
-          if (partnerUid && connections[partnerUid]) {
-            waitingOn.push(uid, partnerUid);
-            send([uid, partnerUid], { action: "request_data" });
-          } else {
-            ws.send(
-              JSON.stringify({
-                error: "No partner specified, or they have disconnected",
-              })
-            );
-          }
-        } else if (message.action === "provide_data") {
-          // Commit the data to the database
-          waitingOn = waitingOn.filter((it) => it !== uid);
-          const coll = await getCollection();
-          const result = await coll.updateOne(
-            {
-              _id: uid,
-            },
-            {
-              $push: {
-                intervals: message.data,
-              },
-            }
-          );
-          if (result.modifiedCount === 0 && result.upsertedCount === 0) {
-            console.warn(
-              "User document wasn't updated! MongoDB returned result: " +
-                JSON.stringify(result)
-            );
-          }
-          if (!waitingOn.includes(partnerUid) && !isEnded) {
-            // If we're not waiting on the other partner to supply data...
-            // Finalize the switch by notifying both partners
-
-            const newDriver =
-              message.data.status === "driver" ? partnerUid : uid;
-            const newNavigator =
-              message.data.status === "navigator" ? partnerUid : uid;
-            const start = Date.now();
-
-            send(newDriver, {
-              action: "switch",
-              start,
-              status: "driver",
-            });
-            send(newNavigator, {
-              action: "switch",
-              start,
-              status: "navigator",
-            });
-          }
-        } else if (message.action === "end") {
-          isEnded = true;
-          const coll = await getCollection();
-          const finished = Date.now();
-            await coll.updateOne(
-              {
-                _id: uid,
-              },
-              {
-                $set: {
-                  session_end: finished,
-                },
-              }
-            );
-            await coll.updateOne( // Will need to be commented out when server is connected
-              {
-                _id: partnerUid,
-              },
-              {
-                $set: {
-                  session_end: finished,
-                },
-              }
-            );
-          // disconnect webserver and send disconnect message
-          send([uid, partnerUid], { action: "end" });
-        } else if (message.action === "update_interruptions") {
-          const coll = await getCollection();
-            await coll.updateOne(
-              {
-                _id: uid,
-              },
-              {
-                $set: {
-                  interruptions: message.interruptions,
-                },
-              }
-            );
-            send (partnerUid, {
-              action: "update_interruptions" }
-              )
+      if (message.action === "hello") {
+        uid = message.uid;
+        if (connections[uid] === undefined) {
+          connections[uid] = [ws];
         } else {
-          console.warn(`No action in WS message: ${message}`);
+          connections[uid].push(ws);
         }
+        // Make sure the client is in the correct state
+        const document = await (await getCollection()).findOne({ _id: uid });
+        if (document?.session_start) {
+          send(uid, {
+            action: "start",
+            status:
+              document.intervals && document.intervals.length > 0
+                ? document.intervals[document.intervals.length - 1].status
+                : document.starting_status,
+          });
+        }
+      } else if (message.action === "update_partner") {
+        // Handled below
+      } else if (message.action === "start") {
+        console.log("Starting session for ", uid, " and ", partnerUid);
+
+        const argument = uid;
+
+        // Start python script
+        const child = spawn("python", ["./recognition/run.py", argument]);
+        child.stdout.on("data", function (data) {
+          console.log("stdout: " + data);
+        });
+        child.stderr.on("data", function (data) {
+          console.log("stderr: " + data);
+        });
+        child.on("close", function (code) {
+          console.log("child process exited with code " + code);
+        });
+
+        // Insert a base "template" document for each user
+        const coll = await getCollection();
+        coll.updateOne(
+          {
+            _id: uid,
+          },
+          {
+            $set: {
+              session_start: Date.now(),
+              intervals: [],
+              starting_status: "driver",
+            },
+          },
+          { upsert: true }
+        );
+        coll.updateOne(
+          {
+            _id: partnerUid,
+          },
+          {
+            $set: {
+              session_start: Date.now(),
+              intervals: [],
+              starting_status: "navigator",
+            },
+          },
+          { upsert: true }
+        );
+
+        // Start the session for both partners
+        send(uid, { action: "start", status: "driver" });
+        send(partnerUid, { action: "start", status: "navigator" });
+      } else if (message.action === "switch") {
+        // Request data from both sides
+        if (partnerUid && connections[partnerUid]) {
+          waitingOn.push(uid, partnerUid);
+          send([uid, partnerUid], { action: "request_data" });
+        } else {
+          ws.send(
+            JSON.stringify({
+              error: "No partner specified, or they have disconnected",
+            })
+          );
+        }
+      } else if (message.action === "provide_data") {
+        // Commit the data to the database
+        waitingOn = waitingOn.filter((it) => it !== uid);
+        const coll = await getCollection();
+        const result = await coll.updateOne(
+          {
+            _id: uid,
+          },
+          {
+            $push: {
+              intervals: message.data,
+            },
+          }
+        );
+        if (result.modifiedCount === 0 && result.upsertedCount === 0) {
+          console.warn(
+            "User document wasn't updated! MongoDB returned result: " +
+              JSON.stringify(result)
+          );
+        }
+        if (!waitingOn.includes(partnerUid) && !isEnded) {
+          // If we're not waiting on the other partner to supply data...
+          // Finalize the switch by notifying both partners
+
+          const newDriver = message.data.status === "driver" ? partnerUid : uid;
+          const newNavigator =
+            message.data.status === "navigator" ? partnerUid : uid;
+          const start = Date.now();
+
+          send(newDriver, {
+            action: "switch",
+            start,
+            status: "driver",
+          });
+          send(newNavigator, {
+            action: "switch",
+            start,
+            status: "navigator",
+          });
+        }
+      } else if (message.action === "end") {
+        isEnded = true;
+        const coll = await getCollection();
+        const finished = Date.now();
+        await coll.updateOne(
+          {
+            _id: uid,
+          },
+          {
+            $set: {
+              session_end: finished,
+            },
+          }
+        );
+        await coll.updateOne(
+          {
+            _id: partnerUid,
+          },
+          {
+            $set: {
+              session_end: finished,
+            },
+          }
+        );
+        // disconnect webserver and send disconnect message
+        send([uid, partnerUid], { action: "end" });
+      } else {
+        console.warn(`Nonexistant or invalid action in WS message: ${message}`);
       }
 
       if (message.action === "hello" || message.action === "update_partner") {
-        const partner = await getPartner(message.uid);
-        partnerUid = partner;
+        const partnerUidFromDatabase = await getPartner(message.uid);
+        partnerUid = partnerUidFromDatabase;
         if (message.partnerUid) {
           await setPartner(uid, message.partnerUid);
           partnerUid = message.partnerUid;
         }
-        if (partner || message.partnerUid) {
+        if (partnerUid) {
           console.log("Partners", uid, "and", partnerUid, "found.");
           // Send both sides an `id` message, telling them to allow the user to start the session.
           send(uid, {
@@ -296,7 +281,7 @@ wss.on("connection", (ws, request) => {
             uid,
             partnerUid,
           });
-          send(message.partnerUid, {
+          send(partnerUid, {
             action: "id",
             uid: partnerUid,
             partnerUid: uid,
@@ -305,7 +290,7 @@ wss.on("connection", (ws, request) => {
       }
     } catch (e) {
       console.log(e);
-      ws.send(JSON.stringify({ error: "unknown" }));
+      ws.send(JSON.stringify({ error: e.message ?? "Unknown" }));
     }
   });
 
