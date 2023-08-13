@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  AutoRouting,
-  getPartnerUID,
-  getUID,
-  resetUID,
-  setPartnerUID,
-} from "@/utils/react";
+import { AutoRouting, getUID, resetUID, setPartnerUID } from "@/utils/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Outfit } from "next/font/google";
@@ -15,6 +9,7 @@ import { createContext, useEffect, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { JsonValue, WebSocketHook } from "react-use-websocket/dist/lib/types";
+import { Spinner } from "./components/Spinner";
 import "./globals.css";
 
 const customFont = Outfit({ subsets: ["latin"] });
@@ -29,30 +24,25 @@ export default function RootLayout({
   const [queryClient] = useState(() => new QueryClient());
   let id = getUID();
 
-  const webSocketHook = useWebSocket(`ws://127.0.0.1:3030/ws`, {
-    shouldReconnect: () => true,
-    reconnectInterval: () => 500,
-  });
+  const webSocketHook = useWebSocket(
+    process.env.WS_SERVER_ADDRESS ?? `ws://127.0.0.1:3030/ws`,
+    {
+      shouldReconnect: () => true,
+      reconnectInterval: () => 500,
+    }
+  );
 
   useEffect(() => {
     console.log("Received: ", webSocketHook.lastJsonMessage);
-    if (
-      webSocketHook.lastJsonMessage &&
-      "action" in webSocketHook.lastJsonMessage &&
-      webSocketHook.lastJsonMessage.action === "hello"
-    ) {
-      webSocketHook.sendJsonMessage({
-        action: "hello",
-        uid: id,
-        partnerUid: getPartnerUID(),
-      });
-    }
 
-    if (
-      webSocketHook.lastJsonMessage &&
-      "error" in webSocketHook.lastJsonMessage
-    ) {
-      toast.error(`Error: ${webSocketHook.lastJsonMessage.error}`);
+    if (webSocketHook.lastJsonMessage) {
+      if ("error" in webSocketHook.lastJsonMessage) {
+        toast.error(`Error: ${webSocketHook.lastJsonMessage.error}`);
+      } else if ("action" in webSocketHook.lastJsonMessage) {
+        if (webSocketHook.lastJsonMessage.action === "toast") {
+          toast(webSocketHook.lastJsonMessage.message?.toString() ?? null);
+        }
+      }
     }
   }, [id, webSocketHook, webSocketHook.lastJsonMessage]);
 
@@ -64,11 +54,16 @@ export default function RootLayout({
         {webSocketHook.readyState !== ReadyState.OPEN ? (
           <>
             <main className="flex h-screen flex-col items-center justify-center">
-              <span className="text-sm font-medium">
-                {webSocketHook.readyState === ReadyState.CONNECTING
-                  ? "Connecting..."
-                  : "Connection Lost (try reloading the page)"}
-              </span>
+              {webSocketHook.readyState === ReadyState.CONNECTING ? (
+                <div className="flex flex-col items-center justify-center gap-4">
+                  <Spinner />
+                  <p className="text-center">Connecting...</p>
+                </div>
+              ) : (
+                <span className="font-medium">
+                  Connection Lost (try reloading the page)
+                </span>
+              )}
             </main>
           </>
         ) : (

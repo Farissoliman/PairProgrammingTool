@@ -18,7 +18,7 @@ Returns all the user's recorded stats. No query parameters or request body is ne
 
 ```json
 {
-  "_id": "test_user_0001",
+  "userId": "test_user_0001",
   "session_start": 1688531280787,
   "intervals": [
     {
@@ -31,7 +31,7 @@ Returns all the user's recorded stats. No query parameters or request body is ne
 }
 ```
 
-- `_id` is the user's `uid`.
+- `userId` is the user's `uid`.
 - `session_start` is a Unix timestamp of when the session started.
 - `intervals` is an array of `Interval` objects, containing info about each time the user was either driver or navigator.
   - `status` represents the user's role during the interval.

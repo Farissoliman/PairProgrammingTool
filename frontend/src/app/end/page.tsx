@@ -12,6 +12,7 @@ import {
 
 import { Interval } from "@/types/UserStats";
 import { useMemo } from "react";
+import { Spinner } from "../components/Spinner";
 import {
   Accordion,
   AccordionContent,
@@ -48,19 +49,26 @@ export default function Page() {
   const { data: partnerData } = useStats(partnerId);
 
   if (isLoading) {
-    return <p>Loading...</p>;
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-2">
+        <Spinner />
+        <p>Loading data...</p>
+      </div>
+    );
   } else if (
     !data ||
     !data.session_end ||
     !partnerData ||
-    !partnerData.session_end
+    !partnerData.session_end ||
+    data.intervals.length === 0 ||
+    partnerData.intervals.length === 0
   ) {
-    return <p>No data yet!</p>;
-  }
-
-  // Check if intervals array exists and has at least one element
-  if (data.intervals.length === 0) {
-    return <p>No intervals data yet!</p>;
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-2">
+        <Spinner />
+        <p>Waiting for data to be recorded...</p>
+      </div>
+    );
   }
 
   return <EndPage />;

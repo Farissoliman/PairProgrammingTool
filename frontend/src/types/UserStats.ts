@@ -1,7 +1,7 @@
 type Status = "driver" | "navigator";
 
 export type UserStats = {
-  _id: string;
+  userId: string;
   partnerUid?: string;
   session_start: number;
   starting_status: Status;

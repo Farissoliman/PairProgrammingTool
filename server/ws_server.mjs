@@ -2,11 +2,26 @@
 
 import { spawn } from "child_process";
 import { WebSocketServer } from "ws";
-import { getDatabase } from "../src/utils/mongo.mjs";
+
+import { MongoClient } from "mongodb";
+
+const DB_NAME = process.env.MONGODB_DB_NAME ?? "gendertool";
+
+const client = new MongoClient(
+  process.env.MONGO_CONNECTION_STRING ?? "mongodb://127.0.0.1:27017",
+);
+const conn = client.connect();
+export const getDatabase = async () => (await conn).db(DB_NAME);
 
 const wss = new WebSocketServer({
-  port: 3030,
+  port: parseInt(process.env.WS_SERVER_PORT ?? "3030"),
   host: "0.0.0.0",
+});
+
+process.once("SIGTERM", () => {
+  console.log("Shutting down...");
+  wss.close();
+  client.close();
 });
 
 // A map from a user's UID to a list of their current active WebSocket connections
@@ -41,8 +56,7 @@ async function getPartner(uid) {
   if (partnerCache.has(uid)) return partnerCache.get(uid);
   const coll = await getCollection();
   const doc = await coll.findOne({
-    // @ts-ignore
-    _id: uid,
+    userId: uid,
   });
   console.log("Getting partner for ", uid, " - Document:", doc);
   if (doc?.partnerUid) {
@@ -56,29 +70,31 @@ async function setPartner(uid, partnerUid) {
   if (!uid || !partnerUid) {
     throw new Error("Unexpected input: " + uid + ", " + partnerUid);
   }
+  partnerCache.set(uid, partnerUid);
+  partnerCache.set(partnerUid, uid);
   const coll = await getCollection();
   await Promise.all([
     coll.updateOne(
       {
-        _id: uid,
+        userId: uid,
       },
       {
         $set: {
           partnerUid: partnerUid,
         },
       },
-      { upsert: true }
+      { upsert: true },
     ),
     coll.updateOne(
       {
-        _id: partnerUid,
+        userId: partnerUid,
       },
       {
         $set: {
           partnerUid: uid,
         },
       },
-      { upsert: true }
+      { upsert: true },
     ),
   ]);
 }
@@ -90,7 +106,7 @@ async function getCollection() {
 
 wss.on("connection", (ws, request) => {
   console.log(
-    `Accepting WebSocket connection from ${request.socket.remoteAddress}`
+    `Accepting WebSocket connection from ${request.socket.remoteAddress}`,
   );
 
   let uid = undefined;
@@ -111,7 +127,7 @@ wss.on("connection", (ws, request) => {
 
       if (!uid && !message.uid) {
         throw new Error(
-          'No UID specified or found from a previous interaction. Try clicking the "Reset" button.'
+          'No UID specified or found from a previous interaction. Try clicking the "Reset" button.',
         );
       }
 
@@ -123,7 +139,7 @@ wss.on("connection", (ws, request) => {
           connections[uid].push(ws);
         }
         // Make sure the client is in the correct state
-        const document = await (await getCollection()).findOne({ _id: uid });
+        const document = await (await getCollection()).findOne({ userId: uid });
         if (document?.session_start) {
           send(uid, {
             action: "start",
@@ -156,7 +172,7 @@ wss.on("connection", (ws, request) => {
         const coll = await getCollection();
         coll.updateOne(
           {
-            _id: uid,
+            userId: uid,
           },
           {
             $set: {
@@ -165,11 +181,11 @@ wss.on("connection", (ws, request) => {
               starting_status: "driver",
             },
           },
-          { upsert: true }
+          { upsert: true },
         );
         coll.updateOne(
           {
-            _id: partnerUid,
+            userId: partnerUid,
           },
           {
             $set: {
@@ -178,7 +194,7 @@ wss.on("connection", (ws, request) => {
               starting_status: "navigator",
             },
           },
-          { upsert: true }
+          { upsert: true },
         );
 
         // Start the session for both partners
@@ -193,7 +209,7 @@ wss.on("connection", (ws, request) => {
           ws.send(
             JSON.stringify({
               error: "No partner specified, or they have disconnected",
-            })
+            }),
           );
         }
       } else if (message.action === "provide_data") {
@@ -202,18 +218,18 @@ wss.on("connection", (ws, request) => {
         const coll = await getCollection();
         const result = await coll.updateOne(
           {
-            _id: uid,
+            userId: uid,
           },
           {
             $push: {
               intervals: message.data,
             },
-          }
+          },
         );
         if (result.modifiedCount === 0 && result.upsertedCount === 0) {
           console.warn(
             "User document wasn't updated! MongoDB returned result: " +
-              JSON.stringify(result)
+              JSON.stringify(result),
           );
         }
         if (!waitingOn.includes(partnerUid) && !isEnded) {
@@ -242,23 +258,23 @@ wss.on("connection", (ws, request) => {
         const finished = Date.now();
         await coll.updateOne(
           {
-            _id: uid,
+            userId: uid,
           },
           {
             $set: {
               session_end: finished,
             },
-          }
+          },
         );
         await coll.updateOne(
           {
-            _id: partnerUid,
+            userId: partnerUid,
           },
           {
             $set: {
               session_end: finished,
             },
-          }
+          },
         );
         // disconnect webserver and send disconnect message
         send([uid, partnerUid], { action: "end" });
@@ -286,6 +302,10 @@ wss.on("connection", (ws, request) => {
             uid: partnerUid,
             partnerUid: uid,
           });
+          send(partnerUid, {
+            action: "toast",
+            message: "Your partner has connected."
+          });
         }
       }
     } catch (e) {
@@ -294,11 +314,15 @@ wss.on("connection", (ws, request) => {
     }
   });
 
-  ws.on("close", (code, reason) => {
+  ws.on("close", async (code, reason) => {
     console.log(`Connection closed (${code}) ${reason?.toString("utf-8")}`);
     if (uid) {
       connections[uid] = undefined;
-      // TODO: let the partner know that this user disconnected
+
+      const partnerUid = uid ? await getPartner(uid) : undefined;
+      if (partnerUid) {
+        send(partnerUid, { error: "Your partner has disconnected." });
+      }
     }
   });
 });

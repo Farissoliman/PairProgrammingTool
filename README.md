@@ -2,22 +2,20 @@
 
 ## Run locally
 
-This project requires a MongoDB database on the local machine running on port 27017.
-The easiest way to do this is via Docker:
+First, you need to set some environment variables. Create a file called `.env.local` and add the following:
 
-```sh
-docker run --rm -p 27017:27017 mongo
+```env
+WS_SERVER_ADDRESS=ws://localhost:3030
 ```
 
-Next, install dependencies:
+Variables which are meant to be committed to the repository can be found in `.env.public`. The contents of `.env.local` should stay on your machine and _not_ be committed to this repo.
+
+The easiest way to run locally is via Docker:
 
 ```sh
-npm install
+docker compose up
 ```
 
-Then, run the Next.js server with `npm run dev`.
-In a different terminal, run the WebSocket server with `node server/ws_server.mjs`.
+This will spin up a MongoDB database, the WebSocket server, and the frontend application, each in its own Docker container.
 
-Next.js will take care of hot reloading for every file except for the WebSocket server.
-For that, you can use `nodemon`: `npx nodemon server/ws_server.mjs`. This will restart
-the WS server every time its code changes.
+When you change the code, you can run `docker compose up --build`, which will take care of rebuilding the images for you.

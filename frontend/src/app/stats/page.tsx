@@ -9,6 +9,7 @@ import {
   useStats,
 } from "@/utils/react";
 import { useContext, useMemo } from "react";
+import { Spinner } from "../components/Spinner";
 import { WebSocketContext } from "../layout";
 
 const SESSION_DURATION = 45 * 60 * 1_000; // 45-minute session duration
@@ -19,9 +20,19 @@ export default function Page() {
   const { data, isLoading } = useStats(id);
 
   if (isLoading) {
-    return <p>Loading...</p>;
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-2">
+        <Spinner />
+        <p>Loading statistics...</p>
+      </div>
+    );
   } else if (!data || !data.session_start) {
-    return <p>No data yet!</p>;
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-2">
+        <Spinner />
+        <p>Waiting for data...</p>
+      </div>
+    );
   } else {
     return <StatsPage />;
   }

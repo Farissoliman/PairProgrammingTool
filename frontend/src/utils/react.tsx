@@ -24,15 +24,21 @@ export const useStats = (id: string | null) => {
   });
 };
 
+let lastIdRequest = 0;
+
 export const getUID = () => {
   if (typeof window === "undefined") {
     return null;
   }
 
   let uid = localStorage.getItem("UID");
-  if (!uid) {
+  if (!uid && Date.now() - lastIdRequest > 5000) {
+    lastIdRequest = Date.now();
     fetch("/api/generate_id")
-      .then((res) => res.text())
+      .then((res) => {
+        if (res.ok) return res.text();
+        else throw new Error("Server returned an error");
+      })
       .then((res) => {
         localStorage.setItem("UID", res);
       });
@@ -65,6 +71,8 @@ export const setPartnerUID = (uid: string | null) => {
   );
 };
 
+let sentHello = false;
+
 export const useRouting = () => {
   const uid = getUID();
 
@@ -72,7 +80,7 @@ export const useRouting = () => {
 
   const { data, isLoading } = useStats(uid);
 
-  const { lastJsonMessage } = useContext(WebSocketContext)!;
+  const { lastJsonMessage, sendJsonMessage } = useContext(WebSocketContext)!;
 
   const router = useRouter();
   const pathname = usePathname();
@@ -103,11 +111,22 @@ export const useRouting = () => {
       }
     } else if (lastJsonMessage?.action === "start") {
       queryClient.invalidateQueries(["stats", uid]);
+    } else if (
+      lastJsonMessage?.action === "hello" &&
+      !sentHello &&
+      uid !== null
+    ) {
+      sendJsonMessage({ action: "hello", uid });
+      sentHello = true;
     }
   }, [lastJsonMessage, queryClient, uid]);
 
   useEffect(() => {
     const partnerUid = getPartnerUID();
+
+    if (uid === null) {
+      goto("/id");
+    }
 
     if (isLoading) {
       // Wait for data to finish loading before deciding which page to route to

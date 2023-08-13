@@ -2,13 +2,15 @@
 
 import { getUID } from "@/utils/react";
 import dynamic from "next/dynamic";
+import { Spinner } from "./components/Spinner";
 
 function Home() {
   const id = getUID();
 
   return (
-    <main className="flex h-screen flex-col items-center justify-center">
-      <span className="text-sm font-medium">Loading...</span>
+    <main className="flex h-screen flex-col items-center justify-center gap-2">
+      <Spinner />
+      Starting up...
     </main>
   );
 }
