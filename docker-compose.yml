@@ -4,6 +4,7 @@ services:
     image: mongo
     volumes:
       - mongo:/data/db
+    restart: on-failure
   frontend:
     build: "./frontend"
     env_file:
@@ -11,6 +12,7 @@ services:
       - .env.local
     ports:
       - 3000:3000
+    restart: on-failure
   server:
     build: "./server"
     env_file:
@@ -18,5 +20,6 @@ services:
       - .env.local
     ports:
       - 3030:3030
+    restart: on-failure
 volumes:
   mongo:

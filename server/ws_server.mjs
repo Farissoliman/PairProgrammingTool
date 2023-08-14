@@ -1,6 +1,5 @@
 //@ts-check
 
-import { spawn } from "child_process";
 import { WebSocketServer } from "ws";
 
 import { MongoClient } from "mongodb";
@@ -8,7 +7,7 @@ import { MongoClient } from "mongodb";
 const DB_NAME = process.env.MONGODB_DB_NAME ?? "gendertool";
 
 const client = new MongoClient(
-  process.env.MONGO_CONNECTION_STRING ?? "mongodb://127.0.0.1:27017",
+  process.env.MONGO_CONNECTION_STRING ?? "mongodb://127.0.0.1:27017"
 );
 const conn = client.connect();
 export const getDatabase = async () => (await conn).db(DB_NAME);
@@ -83,7 +82,7 @@ async function setPartner(uid, partnerUid) {
           partnerUid: partnerUid,
         },
       },
-      { upsert: true },
+      { upsert: true }
     ),
     coll.updateOne(
       {
@@ -94,7 +93,7 @@ async function setPartner(uid, partnerUid) {
           partnerUid: uid,
         },
       },
-      { upsert: true },
+      { upsert: true }
     ),
   ]);
 }
@@ -106,7 +105,7 @@ async function getCollection() {
 
 wss.on("connection", (ws, request) => {
   console.log(
-    `Accepting WebSocket connection from ${request.socket.remoteAddress}`,
+    `Accepting WebSocket connection from ${request.socket.remoteAddress}`
   );
 
   let uid = undefined;
@@ -127,7 +126,7 @@ wss.on("connection", (ws, request) => {
 
       if (!uid && !message.uid) {
         throw new Error(
-          'No UID specified or found from a previous interaction. Try clicking the "Reset" button.',
+          'No UID specified or found from a previous interaction. Try clicking the "Reset" button.'
         );
       }
 
@@ -154,19 +153,19 @@ wss.on("connection", (ws, request) => {
       } else if (message.action === "start") {
         console.log("Starting session for ", uid, " and ", partnerUid);
 
-        const argument = uid;
+        // const argument = uid;
 
         // Start python script
-        const child = spawn("python", ["./recognition/run.py", argument]);
-        child.stdout.on("data", function (data) {
-          console.log("stdout: " + data);
-        });
-        child.stderr.on("data", function (data) {
-          console.log("stderr: " + data);
-        });
-        child.on("close", function (code) {
-          console.log("child process exited with code " + code);
-        });
+        // const child = spawn("python", ["./recognition/run.py", argument]);
+        // child.stdout.on("data", function (data) {
+        //   console.log("stdout: " + data);
+        // });
+        // child.stderr.on("data", function (data) {
+        //   console.log("stderr: " + data);
+        // });
+        // child.on("close", function (code) {
+        //   console.log("child process exited with code " + code);
+        // });
 
         // Insert a base "template" document for each user
         const coll = await getCollection();
@@ -181,7 +180,7 @@ wss.on("connection", (ws, request) => {
               starting_status: "driver",
             },
           },
-          { upsert: true },
+          { upsert: true }
         );
         coll.updateOne(
           {
@@ -194,7 +193,7 @@ wss.on("connection", (ws, request) => {
               starting_status: "navigator",
             },
           },
-          { upsert: true },
+          { upsert: true }
         );
 
         // Start the session for both partners
@@ -209,7 +208,7 @@ wss.on("connection", (ws, request) => {
           ws.send(
             JSON.stringify({
               error: "No partner specified, or they have disconnected",
-            }),
+            })
           );
         }
       } else if (message.action === "provide_data") {
@@ -224,12 +223,12 @@ wss.on("connection", (ws, request) => {
             $push: {
               intervals: message.data,
             },
-          },
+          }
         );
         if (result.modifiedCount === 0 && result.upsertedCount === 0) {
           console.warn(
             "User document wasn't updated! MongoDB returned result: " +
-              JSON.stringify(result),
+              JSON.stringify(result)
           );
         }
         if (!waitingOn.includes(partnerUid) && !isEnded) {
@@ -264,7 +263,7 @@ wss.on("connection", (ws, request) => {
             $set: {
               session_end: finished,
             },
-          },
+          }
         );
         await coll.updateOne(
           {
@@ -274,7 +273,7 @@ wss.on("connection", (ws, request) => {
             $set: {
               session_end: finished,
             },
-          },
+          }
         );
         // disconnect webserver and send disconnect message
         send([uid, partnerUid], { action: "end" });
@@ -304,7 +303,7 @@ wss.on("connection", (ws, request) => {
           });
           send(partnerUid, {
             action: "toast",
-            message: "Your partner has connected."
+            message: "Your partner has connected.",
           });
         }
       }
