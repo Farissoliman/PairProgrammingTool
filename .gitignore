@@ -1,11 +1,3 @@
 node_modules
 .env.local
 pyenv.cfg
-
-# Random stuff that pip adds on Linux when installing packages
-bin
-lib
-lib64
-include
-share
-etc
