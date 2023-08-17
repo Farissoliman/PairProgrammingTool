@@ -25,7 +25,7 @@ export default function RootLayout({
   let id = getUID();
 
   const webSocketHook = useWebSocket(
-    process.env.WS_SERVER_ADDRESS ?? `ws://127.0.0.1:3030/ws`,
+    process.env.WS_SERVER_ADDRESS ?? `ws://lin-res128.csc.ncsu.edu:3030`,
     {
       shouldReconnect: () => true,
       reconnectInterval: () => 500,

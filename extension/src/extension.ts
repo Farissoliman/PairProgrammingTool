@@ -2,7 +2,9 @@ import * as vscode from "vscode";
 import { WebSocket } from "ws";
 
 export function activate(context: vscode.ExtensionContext) {
-  const ws = new WebSocket("ws://127.0.0.1:3030/");
+
+  const WS_ADDRESS = process.env.WS_SERVER_ADDRESS ?? "ws://lin-res128.csc.ncsu.edu:3030"
+  const ws = new WebSocket(WS_ADDRESS);
   const config = vscode.workspace.getConfiguration("files");
 
   context.subscriptions.push(

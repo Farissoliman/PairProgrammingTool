@@ -50,7 +50,7 @@ def start_functions():
 async def connect():
     """Connect to the WebSocket server and await commands."""
     global interval_start, uid, current_position
-    async with websockets.connect("ws://127.0.0.1:3030") as ws:
+    async with websockets.connect("ws://lin-res128.csc.ncsu.edu:3030") as ws:
         print("Connected to WebSocket and awaiting commands.")
         while not ws.closed:
             message_str = await ws.recv()
