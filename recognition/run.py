@@ -71,7 +71,7 @@ async def connect():
                 elif message["action"] == "switch":
                     # Partners switched between driver & navigator
                     print("Switching positions")
-                    interval_start = message.start
+                    interval_start = message["start"]
                     current_position = message["status"]
                     reset_state()
 
