@@ -8,7 +8,8 @@ import {
   useAutoRerender,
   useStats,
 } from "@/utils/react";
-import { useContext, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useContext, useEffect, useMemo } from "react";
 import { Spinner } from "../components/Spinner";
 import { WebSocketContext } from "../layout";
 
@@ -43,8 +44,20 @@ const StatsPage = () => {
   const partnerId = getPartnerUID();
   const data = useStats(id).data!;
   const { data: partnerData } = useStats(partnerId);
+  const client = useQueryClient();
 
   const { sendJsonMessage, lastJsonMessage } = useContext(WebSocketContext)!;
+
+  useEffect(() => {
+    // Refetch user data when partners switch or the session ends
+    if (
+      lastJsonMessage?.action === "switch" ||
+      lastJsonMessage?.action === "end"
+    ) {
+      client.refetchQueries(["stats", id]);
+      client.refetchQueries(["stats", partnerId]);
+    }
+  }, [lastJsonMessage, client, id, partnerId]);
 
   const utterances = sum(
     data.intervals,

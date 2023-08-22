@@ -118,8 +118,11 @@ export const useRouting = () => {
     ) {
       sendJsonMessage({ action: "hello", uid });
       sentHello = true;
+    } else if (lastJsonMessage?.error?.startsWith("Invalid partner ID")) {
+      setPartnerUID(null);
+      router.refresh();
     }
-  }, [lastJsonMessage, queryClient, uid]);
+  }, [lastJsonMessage, sendJsonMessage, queryClient, uid, router]);
 
   useEffect(() => {
     const partnerUid = getPartnerUID();

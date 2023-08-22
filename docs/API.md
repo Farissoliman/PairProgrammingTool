@@ -25,7 +25,19 @@ Returns all the user's recorded stats. No query parameters or request body is ne
       "status": "driver",
       "start": 1688531280787,
       "lines_written": 9,
-      "utterances": [1688531280787, 1688531285787, 1688531290787]
+      "utterances": [
+        {
+          "start_time": 1688531280787,
+          "utterance": "Hello, world!",
+          "end_time": 1688531283000
+        }
+      ],
+      "emotions": [
+        {
+          "timestamp": 1688531280287,
+          "emotion": "happy"
+        }
+      ]
     }
   ]
 }
@@ -34,35 +46,11 @@ Returns all the user's recorded stats. No query parameters or request body is ne
 - `userId` is the user's `uid`.
 - `session_start` is a Unix timestamp of when the session started.
 - `intervals` is an array of `Interval` objects, containing info about each time the user was either driver or navigator.
-  - `status` represents the user's role during the interval.
+  - `status` represents the user's role during the interval (`"driver"` or `"navigator"`).
   - `start` is a Unix timestamp representing the time the interval started.
-  - `lines_written` is the number of lines of code that the user wrote during the interval. Should only be >0 when `status` is `driver`, but this isn't enforced.
-  - `utterances` is an array of Unix timestamps representing the times of each words. Used for interruption detection.
-
-## `POST /api/update/:uid`
-
-Adds some new data to the user's intervals,
-allowing them to view updated statistics.
-
-This should be called for each user,
-but only when they switch positions (driver <-> navigator)
-OR when the session ends.
-
-**Example request body**
-The request body should be a JSON-formatted `Interval`.
-
-```json
-{
-  "status": "driver",
-  "start": 1688531280787,
-  "lines_written": 9,
-  "utterances": [1688531280787, 1688531285787, 1688531290787]
-}
-```
-
-No response should be expected. After this endpoint is called
-successfully, the response of `GET /api/stats/:uid` should
-include the new information.
+  - `keystrokes` is the number of keystrokes from the user during the interval. Should only be >0 when `status` is `driver` and `=0` when `status` is `navigator`, but this isn't enforced.
+  - `utterances` is an array of JSON objects representing the times of each words and what was spoken. Used for interruption detection.
+  - `emotions` is an array of JSON objects representing the user's emotions at different times. `timestamp` is a Unix timestamp, and `emotion` is one of: `angry`, `disgust`, `fear`, `happy`, `sad`, `surprise`, `neutral`.
 
 ## WebSocket API
 
@@ -82,6 +70,9 @@ In the `Direction` column: "C" = client, "S" = server.
 | `request_data`   | S&rarr;C  | Asks the client to provide all the collected data over the most recent interval. The client must respond with a `provide_data` message.                                                | None                                                                                          |
 | `provide_data`   | C&rarr;S  | Responds to the server's requets and provides interval data to be added to the MongoDB document. Once both clients provide data, the server will respond with a `switch` message.      | `data`: a JSON object with interval information                                               |
 | `switch`         | S&rarr;C  | Tells both clients that a new interval may start at the provided timestamp (which should be slightly in the past). Driver and navigator should switch roles at this time in the UI.    | `start`: A Unix timestamp of the new interval's start time, including milliseconds            |
+| `toast`          | S&rarr;C  | Tells the frontend client to display a message to the user.                                                                                                                            | `message`: A string representing the message to be shown to the user                          |
+
+If there was a server-side error handling a WebSocket message, the server will respond with a JSON payload that only contains an `error` field, which is a human-readable error message.
 
 ```mermaid
 sequenceDiagram

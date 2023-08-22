@@ -149,23 +149,14 @@ wss.on("connection", (ws, request) => {
           });
         }
       } else if (message.action === "update_partner") {
+        if (connections?.[message.partnerUid] === undefined) {
+          throw new Error(
+            "Invalid partner ID. Make sure you typed it correctly."
+          );
+        }
         // Handled below
       } else if (message.action === "start") {
         console.log("Starting session for ", uid, " and ", partnerUid);
-
-        // const argument = uid;
-
-        // Start python script
-        // const child = spawn("python", ["./recognition/run.py", argument]);
-        // child.stdout.on("data", function (data) {
-        //   console.log("stdout: " + data);
-        // });
-        // child.stderr.on("data", function (data) {
-        //   console.log("stderr: " + data);
-        // });
-        // child.on("close", function (code) {
-        //   console.log("child process exited with code " + code);
-        // });
 
         // Insert a base "template" document for each user
         const coll = await getCollection();
